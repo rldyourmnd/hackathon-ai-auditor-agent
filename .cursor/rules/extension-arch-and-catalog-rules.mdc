@@ -1,0 +1,179 @@
+---
+description: "Repository structure and architectural vision for the `extensions/` subproject. Enforces layered monorepo layout, client separation (browser-ext, vscode-ext), and shared packages (core, ui, i18n, messaging, shared). Always applies."
+alwaysApply: true
+globs:
+  - "extensions/**/*"
+  - ".cursor/rules/extensions/*.mdc"
+  - "docs/extensions/**/*.md"
+---
+
+# Extensions Monorepo
+
+## 1. Scope and Context
+
+- Work only inside the `extensions/` directory (subproject for browser + VS Code extensions).  
+- Structure must follow layered architecture:  
+  - **packages/** → reusable logic and UI  
+  - **apps/** → thin clients (browser-ext, vscode-ext)  
+- Keep strict separation: no duplication between clients, all shared logic/UI in `packages/`.
+
+---
+
+## 2. Canonical Repository Structure
+
+```txt
+extensions/
+  packages/                   # Shared libraries, reused by both clients
+    core/                     # Core domain logic (prompt analysis)
+      src/
+        index.ts
+        analyzers/
+          selfCheck.ts
+          semanticEntropy.ts
+          llmJudge.ts
+          ragOracle.ts
+        detectors/
+          pii.ts
+          contradiction.ts
+        utils/
+          normalize.ts
+          scoring.ts
+          diff.ts
+        types.ts
+    ui/                       # Shared React components for UI
+      src/
+        components/
+          RiskBadge.tsx
+          RiskList.tsx
+          SuggestionCard.tsx
+          Toolbar.tsx
+        styles/tailwind.css
+    i18n/                     # Localization JSON files
+      en.json
+      ru.json
+    messaging/                # Adapters for message passing
+      browser.ts              # chrome.runtime + storage
+      vscode.ts               # vscode.postMessage + SecretStorage
+    shared/                   # Constants, schemas, and types
+      src/
+        constants.ts
+        schemas.ts
+  apps/
+    browser-ext/              # Chrome/Chromium extension (MV3 + Vite)
+      public/
+        manifest.json
+        icons/
+      src/
+        content.ts            # Content script: extract text from DOM
+        background.ts         # Service worker: routes messages, calls core
+        popup/App.tsx         # Popup UI
+        sidepanel/Panel.tsx   # Side panel (optional, detailed view)
+    vscode-ext/               # VS Code / Cursor extension
+      package.json            # contributes.commands, activationEvents
+      src/
+        extension.ts          # Main entry point
+        commands/analyze.ts   # Command to analyze current editor content
+        webview/App.tsx       # React webview UI
+        statusbar.ts          # Status bar item with analysis status
+  package.json                # Scripts for dev/build/test across extensions
+  tsconfig.base.json          # Shared TS config
+  turbo.json                  # Turborepo orchestration
+  pnpm-workspace.yaml         # Workspace definition
+  README.md
+This is the authoritative layout. Any new files or folders must align with these boundaries.
+
+3. Workflow (Recon → Plan → Execute → Verify → Report)
+Recon:
+
+Inspect packages/* vs apps/* before coding.
+
+Identify whether code belongs in shared or client layer.
+
+Plan:
+
+Define which package/app is touched.
+
+Update /docs/extensions/architecture.md if structural change.
+
+Execute:
+
+Core logic → packages/core.
+
+Shared UI → packages/ui.
+
+Messaging → packages/messaging.
+
+i18n → packages/i18n.
+
+Clients (browser-ext, vscode-ext) may only import from packages/*.
+
+Verify:
+
+Run type-check, lint, build, unit tests.
+
+Ensure both apps build (MV3 + Vite; VS Code + webview).
+
+Report:
+
+List changed files with package/app ownership.
+
+Confirm architectural rules preserved.
+
+4. Guardrails
+No analysis logic inside apps/.
+
+Apps are thin shells; logic/UI must live in packages/*.
+
+Browser app must respect MV3 manifest rules.
+
+VS Code app must respect Extension API.
+
+Shared models (AnalysisResult, etc.) live in packages/shared.
+
+Keep UI consistent across clients (React + Tailwind + shadcn/ui).
+
+5. Anchor and Doc Policy
+Every new analyzer/detector in core: anchor docblock + unit tests.
+
+Every new UI component in ui: anchor docblock + usage example.
+
+Update /docs/extensions/architecture.md on structural change.
+
+6. Quality and Atomicity
+Keep files <500 lines.
+
+All changes must pass lint, test, type-check, and build for both apps.
+
+Anchors/docs must ship in same commit as code.
+
+One commit = one atomic change.
+
+7. Communication
+Always clarify whether a change is client-specific or shared.
+
+Summarize architectural impact in PR description.
+
+8. LLM/Tool Agnostic
+Rules apply regardless of IDE or tool.
+
+Documentation must allow any agent to follow architecture.
+
+References:
+
+/docs/extensions/architecture.md
+
+/docs/extensions/semantic_anchors_extensions.md
+
+.pre-commit-config.yaml
+
+extensions/README.md
+
+@anchor:extensions:repo_structure:end
+
+yaml
+Copy
+Edit
+
+---
+
+Do you want me to also draft a **starter `/docs/extensions/architecture.md`** file (with layers, flows, and integration points) so that Cursor has a living doc to sync against this rule?
