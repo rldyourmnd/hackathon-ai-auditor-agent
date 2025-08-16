@@ -3,9 +3,10 @@
   "name": "AI Auditor (dev)",
   "version": "0.0.1",
   "action": {
-    "default_title": "AI Auditor"
+    "default_title": "AI Auditor",
+    "default_popup": "popup.html"
   },
-  "permissions": [],
+  "permissions": ["storage", "activeTab"],
   "background": { "service_worker": "dist/background.js" },
   "content_scripts": [
     {

@@ -6,7 +6,7 @@
     "lib": ["DOM", "ES2020"],
     "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src", "src/**/*.d.ts"]
 }
 
 

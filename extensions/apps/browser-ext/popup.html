@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Auditor</title>
+  <style>
+    body {
+      width: 350px;
+      min-height: 400px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .logo {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+    
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    
+    .section {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    
+    .setting {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .setting:last-child {
+      margin-bottom: 0;
+    }
+    
+    .setting label {
+      font-size: 13px;
+      color: #64748b;
+    }
+    
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+    
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e1;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+      background-color: #3b82f6;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    
+    select {
+      padding: 6px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 13px;
+      background: white;
+    }
+    
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    
+    .status.online {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    
+    .status.offline {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    
+    .analysis-item {
+      padding: 8px;
+      margin-bottom: 6px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    
+    .analysis-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .analysis-time {
+      color: #64748b;
+      font-size: 11px;
+    }
+    
+    .analysis-result {
+      margin-top: 4px;
+    }
+    
+    .finding {
+      padding: 4px 8px;
+      margin: 2px 0;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    
+    .finding.high {
+      background: #fef2f2;
+      color: #dc2626;
+      border-left: 3px solid #ef4444;
+    }
+    
+    .finding.medium {
+      background: #fffbeb;
+      color: #d97706;
+      border-left: 3px solid #f59e0b;
+    }
+    
+    .finding.low {
+      background: #f0fdf4;
+      color: #059669;
+      border-left: 3px solid #10b981;
+    }
+    
+    .clear-history {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #64748b;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      width: 100%;
+    }
+    
+    .clear-history:hover {
+      background: #e2e8f0;
+    }
+    
+    .no-history {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 12px;
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🔍</div>
+    <div class="title">AI Auditor</div>
+  </div>
+
+  <div id="status" class="status offline">
+    📱 Режим: Offline анализ
+  </div>
+
+  <div class="section">
+    <div class="section-title">Настройки</div>
+    
+    <div class="setting">
+      <label>Offline режим</label>
+      <label class="toggle">
+        <input type="checkbox" id="offlineMode" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <div class="setting">
+      <label>Блокировать при высоком риске</label>
+      <label class="toggle">
+        <input type="checkbox" id="blockOnHighRisk">
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <div class="setting">
+      <label>Провайдер</label>
+      <select id="provider">
+        <option value="local">Локальный</option>
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Anthropic</option>
+      </select>
+    </div>
+    
+    <div class="setting">
+      <label>Модель</label>
+      <select id="model">
+        <option value="none">Не выбрана</option>
+        <option value="gpt-4">GPT-4</option>
+        <option value="claude-3">Claude 3</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">История анализа</div>
+    <div id="history-container">
+      <div class="no-history">
+        История пуста.<br>
+        Нажмите кнопку "🔍 Analyze" на любом AI сайте для анализа.
+      </div>
+    </div>
+    <button class="clear-history" id="clearHistory">Очистить историю</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
