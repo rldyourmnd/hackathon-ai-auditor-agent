@@ -75,7 +75,6 @@ NEXT_PUBLIC_API_BASE=http://api:8000
 - [ ] Implement embeddings service (`app/services/embeddings.py`)
 - [ ] Configure feature flags/metric configs (entropy thresholds, etc.) via environment variables:
   - `ENTROPY_N=8`
-  - `ENTROPY_TEMP=0.7`
 
 ## Phase 2 - Analysis Pipeline Orchestration (LangGraph, without Temporal)
 
@@ -117,7 +116,7 @@ NEXT_PUBLIC_API_BASE=http://api:8000
 - [ ] Add optional inter-document contradiction detection for prompt-base
 
 ### Semantic Entropy Analysis
-- [ ] Create sampler for n=8-12 responses using cheap LLM (T=0.7)
+- [ ] Create sampler for n=8-12 responses using cheap LLM
 - [ ] Generate embeddings and perform k-means/HDBSCAN clustering
 - [ ] Calculate `entropy`, `spread`, and `clusters` metrics
 

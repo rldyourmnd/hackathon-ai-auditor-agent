@@ -100,7 +100,6 @@ DEFAULT_MODEL=gpt-4o-mini
 
 # Analysis configuration
 ENTROPY_N=8              # Number of samples for semantic entropy
-ENTROPY_TEMP=0.7         # Temperature for response sampling
 
 # Frontend
 NEXT_PUBLIC_API_BASE=http://api:8000

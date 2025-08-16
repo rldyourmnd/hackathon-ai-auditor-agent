@@ -55,7 +55,7 @@ Curestry is an intelligent platform designed to analyze, validate, and optimize 
 - **Inter-prompt**: Cross-document consistency checking in prompt-base
 
 ### 5. Semantic Entropy Measurement
-- **Response Sampling**: Generate 8-12 responses with temperature 0.7
+- **Response Sampling**: Generate 8–12 responses using the cheap tier model; sampling variability is provider-defined (no explicit control)
 - **Embedding Analysis**: Vector clustering of responses
 - **Metrics**: Entropy, spread, and cluster analysis
 
@@ -166,7 +166,6 @@ DEFAULT_MODEL=gpt-4o-mini
 ### Analysis Configuration
 ```env
 ENTROPY_N=8
-ENTROPY_TEMP=0.7
 ```
 
 ### Frontend
