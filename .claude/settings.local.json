@@ -30,12 +30,21 @@
       "Bash(git commit:*)",
       "Bash(grep:*)",
       "Bash(__NEW_LINE__ echo \"✓ 1. POST /analyze - WORKING (verified above)\")",
-      "Bash(__NEW_LINE__ echo \"\")"
+      "Bash(__NEW_LINE__ echo \"\")",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(PORT=3000 npm run dev)",
+      "Bash(export OPENAI_MODEL_CHEAP=gpt-4o-mini)",
+      "Bash(export:*)",
+      "Bash(export OPENAI_MODEL_PREMIUM=gpt-4o)",
+      "Bash(echo:*)",
+      "Bash(cat:*)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
       "C:\\c\\Users\\Administrator\\Desktop\\projects",
-      "C:\\Users\\Administrator\\Desktop\\projects"
+      "C:\\Users\\Administrator\\Desktop\\projects",
+      "C:\\c\\Users\\Administrator\\Desktop\\projects\\hackathon"
     ]
   }
 }

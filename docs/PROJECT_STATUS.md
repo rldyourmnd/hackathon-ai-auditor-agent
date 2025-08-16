@@ -73,7 +73,7 @@
 - Patch management interface
 - Export functionality
 
-**Current Branch**: `phase5/APIs`  
+**Current Branch**: `phase5/APIs`
 **All code**: https://github.com/rldyourmnd/hackathon-ai-auditor-agent
 
 ---

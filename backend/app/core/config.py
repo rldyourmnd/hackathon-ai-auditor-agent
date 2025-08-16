@@ -8,10 +8,7 @@ class Settings(BaseSettings):
     """Application settings with environment variable loading."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
     )
 
     # General settings
@@ -30,13 +27,21 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://redis:6379/0")
 
     # OpenAI settings
-    openai_api_key: str = Field(default="", description="OpenAI API key (optional for demo)", alias="OPENAI_API_KEY")
+    openai_api_key: str = Field(
+        default="",
+        description="OpenAI API key (optional for demo)",
+        alias="OPENAI_API_KEY",
+    )
     openai_model_cheap: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL_CHEAP")
-    openai_model_standard: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL_STANDARD")
-    openai_model_premium: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL_PREMIUM")
+    openai_model_standard: str = Field(
+        default="gpt-4o-mini", alias="OPENAI_MODEL_STANDARD"
+    )
+    openai_model_premium: str = Field(default="gpt-4o", alias="OPENAI_MODEL_PREMIUM")
 
     # Analysis configuration
-    entropy_n: int = Field(default=8, description="Number of samples for semantic entropy")
+    entropy_n: int = Field(
+        default=8, description="Number of samples for semantic entropy"
+    )
 
     @property
     def is_development(self) -> bool:
