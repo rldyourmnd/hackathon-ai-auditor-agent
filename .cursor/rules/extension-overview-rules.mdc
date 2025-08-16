@@ -66,3 +66,4 @@ globs:
 - Lakera examples (local detectors, MutationObserver, tests)  
 - Prompt Enhancer (permissions, storage)  
 - Cursor Stats (commands, UX, i18n)
+

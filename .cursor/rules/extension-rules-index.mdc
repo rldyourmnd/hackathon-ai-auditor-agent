@@ -1,0 +1,22 @@
+---
+description: Index of extension development rules maintained in `.cursor/rules/`.
+---
+
+# Extension Rules Index
+
+This index lists all rule files under `.cursor/rules/` with short descriptions and links.
+
+- **extension-overview-rules.mdc**: High-level architecture and workflow for browser + VS Code extensions.
+- **extension-arch-and-catalog-rules.mdc**: Repository layout, packages/apps separation, and guardrails.
+- **extension-vscode-extension-rules.mdc**: VSCode-specific rules (TypeScript, activation, packaging).
+- **extension-chrome-extension-general-rules.mdc**: General Chrome extension best practices.
+- **extension-manifest-and-permissions-rules.mdc**: Manifest v3 and permissions guidance.
+- **extension-browser-api-usage-rules.mdc**: Guidance for using chrome.* browser APIs safely.
+- **extension-security-and-privacy-rules.mdc**: Security & privacy checklist for extensions.
+- **extension-performance-optimization-rules.mdc**: Performance patterns and background script advice.
+- **extension-typescript-usage-rules.mdc**: TypeScript-specific usage rules and patterns.
+- **extension-javascript-typescript-code-style.mdc**: Coding style guidance for JS/TS.
+- **extension-ui-and-styling-rules.mdc**: UI and styling conventions for popup/webview.
+
+If you need a markdown TOC or a generated summary for each rule, tell me which format you prefer (plain list, table with anchors, or clickable links).
+

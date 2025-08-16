@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "AI Auditor (dev)",
+  "version": "0.0.1",
+  "action": {
+    "default_title": "AI Auditor"
+  },
+  "permissions": [],
+  "background": { "service_worker": "background.js" }
+}
+
+
+

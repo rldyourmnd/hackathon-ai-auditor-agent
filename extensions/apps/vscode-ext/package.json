@@ -1,0 +1,14 @@
+{
+  "name": "ai-auditor-vscode",
+  "version": "0.0.1",
+  "main": "src/extension.ts",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "scripts": {
+    "build": "tsc -p ."
+  }
+}
+
+
+

@@ -170,10 +170,3 @@ extensions/README.md
 
 @anchor:extensions:repo_structure:end
 
-yaml
-Copy
-Edit
-
----
-
-Do you want me to also draft a **starter `/docs/extensions/architecture.md`** file (with layers, flows, and integration points) so that Cursor has a living doc to sync against this rule?

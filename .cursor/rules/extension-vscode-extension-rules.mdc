@@ -1,0 +1,155 @@
+---
+description: "VSCode Extension Development Expert Ruleset. Enforces TypeScript code style, modular architecture, manifest correctness, UI consistency, security, and performance best practices for the `extensions/vscode-ext` project. Always applies."
+alwaysApply: true
+globs:
+  - "extensions/apps/vscode-ext/**/*"
+  - ".cursor/rules/vscode-ext/*.mdc"
+  - "docs/extensions/vscode-ext/**/*.md"
+---
+
+# VSCode Extension Expert
+
+## 1. Scope and Context
+
+- Act as an expert in **VSCode Extension Development, TypeScript, Node.js, HTML, CSS, VSCode APIs, and Electron**.  
+- Apply rules only within `extensions/apps/vscode-ext/` and related docs.  
+- Ensure all code and docs align with VSCode Extension API guidelines and project-wide architecture.  
+- Follow the official [VSCode Extension documentation](https://code.visualstudio.com/api).  
+
+---
+
+## 2. Code Style and Structure
+
+- Write clear, concise TypeScript with modern ECMAScript standards.  
+- Organize project into `src`, `out`, and `assets` directories.  
+- Use **modular design**: separate commands, UI components, and business logic.  
+- Add inline comments and **JSDoc annotations** for public APIs.  
+
+**Naming Conventions:**  
+- Files/folders → kebab-case (`command-handler.ts`).  
+- Variables/functions → camelCase.  
+- Classes/interfaces → PascalCase.  
+- Commands/config keys → descriptive (e.g., `extension.analyzePrompt`, `extension.showOutput`).  
+
+---
+
+## 3. TypeScript Usage
+
+- Use strict type checking (`strict: true` in tsconfig.json).  
+- Define **interfaces and types** for commands, schemas, and message payloads.  
+- Leverage **generics, union types, and type guards** for robust APIs.  
+- Catch potential errors early via type safety.  
+
+---
+
+## 4. Extension Architecture
+
+- Entry point: `extension.ts`.  
+- Use `activate()` to register commands, events, and providers.  
+- Apply **dependency injection** for state and service management.  
+- Keep features modular and split into separate files under `src/commands`, `src/services`, etc.  
+
+---
+
+## 5. Manifest and Configuration
+
+- `package.json` must define:  
+  - Metadata (name, displayName, version, publisher).  
+  - Activation events (`onCommand`, `onLanguage`, etc.).  
+  - Contributions (commands, menus, keybindings, configuration).  
+- Follow VSCode’s manifest schema.  
+- Document all config options in both `package.json` and `README.md`.  
+- Use **minimal activation events** to reduce performance overhead.  
+
+---
+
+## 6. Security and Privacy
+
+- Follow **principle of least privilege**: request only needed permissions.  
+- Validate and sanitize all user input/config.  
+- Store secrets in **SecretStorage** (never in plain files).  
+- Ensure error handling/logging do not leak sensitive state.  
+
+---
+
+## 7. UI and Styling
+
+- Use **VSCode Webview API** for custom UIs (React + Vite build).  
+- Follow VSCode design language for seamless integration.  
+- Support dark/light themes and responsive layouts.  
+- Separate HTML, CSS, and TS for maintainability.  
+
+---
+
+## 8. Performance Optimization
+
+- Optimize activation by **deferring non-critical operations**.  
+- Use async/await to avoid blocking.  
+- Lazy-load features when possible.  
+- Minimize file system and network operations on startup.  
+
+---
+
+## 9. VSCode API Usage
+
+- Correctly use `vscode.workspace`, `vscode.window`, `vscode.commands`.  
+- Handle errors on all API calls.  
+- Keep up with API changes/deprecations.  
+- Use **status bar items, quick pick menus, and notifications** to improve UX.  
+
+---
+
+## 10. Cross-Platform Compatibility
+
+- Test extension on Windows, macOS, and Linux.  
+- Avoid OS-specific assumptions in file paths or APIs.  
+- Prefer VSCode APIs over Node.js FS/Process where possible.  
+
+---
+
+## 11. Testing and Debugging
+
+- Write **unit tests** (Mocha/Jest) for core logic.  
+- Write **integration tests** using VSCode Extension Test Runner.  
+- Debug using VSCode’s built-in tools (launch configs, breakpoints).  
+- Add structured logging (info, warn, error) for troubleshooting.  
+
+---
+
+## 12. Context-Aware Development
+
+- Always consider **existing project architecture** in `extensions/`.  
+- Reuse shared packages (`core`, `ui`, `messaging`, `i18n`, `shared`).  
+- Avoid duplication — extend or refactor instead.  
+- Gather feedback and refine based on telemetry and user needs.  
+
+---
+
+## 13. Output Policy
+
+- Provide **full file contents** when generating code.  
+- Include imports, declarations, and surrounding context.  
+- Comment major changes with rationale.  
+- If snippet is partial, explain how it fits in overall structure.  
+
+---
+
+## 14. Guardrails
+
+- No file >500 lines or 10k tokens.  
+- Max 500 changed lines or 10 files per task.  
+- All changes must include docs/anchors/tests in same PR.  
+- No undocumented features or APIs.  
+- Keep extension atomic and maintainable.  
+
+---
+
+**References:**  
+- `/docs/extensions/vscode-ext/architecture.md`  
+- `extensions/apps/vscode-ext/package.json`  
+- `extensions/apps/vscode-ext/src/extension.ts`  
+- `/docs/core/code_style.md`  
+- `/docs/core/llm_guardrails.md`
+
+@anchor:vscode:extension_rules:end
+
