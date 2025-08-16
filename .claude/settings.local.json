@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(make:*)",
+      "Bash(docker compose:*)",
+      "Bash(npm install)",
+      "Bash(python:*)",
+      "Bash(curl:*)",
+      "Bash(npm run dev:*)",
+      "Bash(rm:*)",
+      "Bash(taskkill:*)",
+      "Bash(wmic process where processid=25108 delete:*)",
+      "Bash(alembic init:*)",
+      "Bash(PYTHONPATH=. alembic revision --autogenerate -m \"Initial tables\")",
+      "Bash(timeout 10 curl -X POST http://localhost:8000/analyze )"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}

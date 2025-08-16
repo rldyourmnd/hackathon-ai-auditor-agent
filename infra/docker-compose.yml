@@ -1,0 +1,84 @@
+services:
+  api:
+    build:
+      context: ../backend
+      dockerfile: ../infra/Dockerfile.api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    environment:
+      - ENV=${ENV:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL_CHEAP=${OPENAI_MODEL_CHEAP:-gpt-5-nano}
+      - OPENAI_MODEL_STANDARD=${OPENAI_MODEL_STANDARD:-gpt-5-mini}
+      - OPENAI_MODEL_PREMIUM=${OPENAI_MODEL_PREMIUM:-gpt-5-mini}
+      - OPENAI_TEMPERATURE_CHEAP=${OPENAI_TEMPERATURE_CHEAP:-0.7}
+      - OPENAI_TEMPERATURE_STD=${OPENAI_TEMPERATURE_STD:-0.3}
+      - OPENAI_TEMPERATURE_PREMIUM=${OPENAI_TEMPERATURE_PREMIUM:-0.2}
+      - ENTROPY_N=${ENTROPY_N:-8}
+      - ENTROPY_TEMP=${ENTROPY_TEMP:-0.7}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ../backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  web:
+    build:
+      context: ../frontend
+      dockerfile: ../infra/Dockerfile.web
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../.env
+    environment:
+      - NEXT_PUBLIC_API_BASE=http://localhost:8000
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    depends_on:
+      - api
+
+  db:
+    image: postgres:15-alpine
+    # ports:
+    #   - "5434:5432"  # Internal access only
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-curestry}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password}
+      - POSTGRES_DB=${POSTGRES_DB:-curestry}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-curestry}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
