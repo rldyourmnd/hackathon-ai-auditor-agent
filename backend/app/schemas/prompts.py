@@ -66,7 +66,7 @@ class ClarifyQuestion(BaseModel):
     id: str = Field(..., description="Question identifier")
     question: str = Field(..., description="The clarification question")
     category: str = Field(..., description="What aspect needs clarification")
-    importance: Literal["low", "medium", "high"] = Field(..., description="Question priority")
+    priority: Literal["low", "medium", "high"] = Field(..., description="Question priority")
 
 
 class ClarifyAnswer(BaseModel):

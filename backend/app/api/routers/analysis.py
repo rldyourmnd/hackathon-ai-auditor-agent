@@ -68,13 +68,13 @@ async def analyze_prompt(request: AnalyzeRequest):
         for patch in pipeline_state.patches:
             api_patches.append(Patch(
                 id=patch.id,
-                type="safe" if patch.risk_level == "safe" else "risky",
-                category=patch.type,
+                type=patch.type,
+                category=patch.category,
                 description=patch.description,
-                original=patch.current_text,
-                improved=patch.suggested_text,
-                rationale=patch.reasoning,
-                confidence=0.8  # Default confidence
+                original=patch.original,
+                improved=patch.improved,
+                rationale=patch.rationale,
+                confidence=patch.confidence
             ))
 
         # Convert questions to API format

@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import analysis
+from app.api.routers import analysis, prompt_base
 from app.core.config import settings
 from app.core.database import db_manager, init_db
 from app.schemas.prompts import HealthResponse
@@ -63,6 +63,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(analysis.router)
+app.include_router(prompt_base.router)
 
 
 @app.on_event("startup")

@@ -14,7 +14,7 @@ class PromptBase(SQLModel):
     format_type: str = Field(default="auto", max_length=50, description="Prompt format (auto/xml/markdown)")
     language: str = Field(default="en", max_length=10, description="Prompt language")
     tags: Optional[List[str]] = Field(default_factory=list, sa_column=Column(JSON), description="Tags for categorization")
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON), description="Additional metadata")
+    extra_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON), description="Additional metadata")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
 
@@ -61,7 +61,7 @@ class PromptUpdate(SQLModel):
     format_type: Optional[str] = None
     language: Optional[str] = None
     tags: Optional[List[str]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    extra_metadata: Optional[Dict[str, Any]] = None
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -69,7 +69,7 @@ class PromptRelationBase(SQLModel):
     """Base class for prompt relationships."""
     relation_type: str = Field(max_length=50, description="Relationship type: depends_on, overrides, conflicts_with")
     description: Optional[str] = Field(default=None, description="Description of the relationship")
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
+    extra_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -129,8 +129,8 @@ class AnalysisResultBase(SQLModel):
     patches: Optional[List[Dict[str, Any]]] = Field(default_factory=list, sa_column=Column(JSON))
     clarify_questions: Optional[List[Dict[str, Any]]] = Field(default_factory=list, sa_column=Column(JSON))
 
-    # Metadata
-    analysis_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
+    # Metadata  
+    analysis_extra_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column('format_type', sa.String(length=50), nullable=False),
         sa.Column('language', sa.String(length=10), nullable=False),
         sa.Column('tags', sa.JSON(), nullable=True),
-        sa.Column('metadata', sa.JSON(), nullable=True),
+        sa.Column('extra_metadata', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id')
@@ -41,7 +41,7 @@ def upgrade() -> None:
         sa.Column('target_id', sa.String(), nullable=False),
         sa.Column('relation_type', sa.String(length=50), nullable=False),
         sa.Column('description', sa.String(), nullable=True),
-        sa.Column('metadata', sa.JSON(), nullable=True),
+        sa.Column('extra_metadata', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(['source_id'], ['prompts.id'], ),
         sa.ForeignKeyConstraint(['target_id'], ['prompts.id'], ),
@@ -65,7 +65,7 @@ def upgrade() -> None:
         sa.Column('contradictions', sa.JSON(), nullable=True),
         sa.Column('patches', sa.JSON(), nullable=True),
         sa.Column('clarify_questions', sa.JSON(), nullable=True),
-        sa.Column('analysis_metadata', sa.JSON(), nullable=True),
+        sa.Column('analysis_extra_metadata', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(['prompt_id'], ['prompts.id'], ),
         sa.PrimaryKeyConstraint('id')

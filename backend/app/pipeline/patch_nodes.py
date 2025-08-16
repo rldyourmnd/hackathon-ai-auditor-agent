@@ -46,8 +46,8 @@ async def propose_patches_node(state: PipelineState) -> PipelineState:
         # Update state
         state.patches = patches
 
-        safe_count = sum(1 for p in patches if p.risk_level == "safe")
-        risky_count = sum(1 for p in patches if p.risk_level == "risky")
+        safe_count = sum(1 for p in patches if p.type == "safe")
+        risky_count = sum(1 for p in patches if p.type == "risky")
 
         logger.info(f"Generated {len(patches)} patches ({safe_count} safe, {risky_count} risky)")
 
@@ -68,13 +68,13 @@ async def _generate_format_patches(content: str, format_type: str) -> List[Patch
         if "<" in content and not content.strip().startswith("<"):
             patches.append(Patch(
                 id="xml_root_wrap",
-                type="format",
+                type="safe",
+                category="markup",
                 description="Wrap content in XML root element",
-                current_text=content[:100] + "..." if len(content) > 100 else content,
-                suggested_text=f"<root>{content}</root>",
-                risk_level="safe",
-                position={"start": 0, "end": len(content)},
-                reasoning="XML content should be wrapped in a root element"
+                original=content[:100] + "..." if len(content) > 100 else content,
+                improved=f"<root>{content}</root>",
+                rationale="XML content should be wrapped in a root element",
+                confidence=0.9
             ))
 
     elif format_type == "markdown":
@@ -84,13 +84,13 @@ async def _generate_format_patches(content: str, format_type: str) -> List[Patch
         if not any(line.strip().startswith('#') for line in lines[:3]):
             patches.append(Patch(
                 id="md_add_title",
-                type="format",
+                type="safe",
+                category="markup",
                 description="Add markdown title",
-                current_text=lines[0][:50] + "..." if lines and len(lines[0]) > 50 else (lines[0] if lines else ""),
-                suggested_text=f"# Document Title\n\n{lines[0] if lines else ''}",
-                risk_level="safe",
-                position={"start": 0, "end": len(lines[0]) if lines else 0},
-                reasoning="Markdown documents should have a clear title"
+                original=lines[0][:50] + "..." if lines and len(lines[0]) > 50 else (lines[0] if lines else ""),
+                improved=f"# Document Title\n\n{lines[0] if lines else ''}",
+                rationale="Markdown documents should have a clear title",
+                confidence=0.8
             ))
 
     return patches
@@ -112,25 +112,25 @@ def _generate_vocab_patches(vocab_changes: List[str]) -> List[Patch]:
 
                     patches.append(Patch(
                         id=f"vocab_{i}",
-                        type="vocabulary",
+                        type="safe",
+                        category="vocabulary",
                         description=f"Replace '{old_term}' with '{new_term}'",
-                        current_text=old_term,
-                        suggested_text=new_term,
-                        risk_level="safe",
-                        position={"start": 0, "end": 0},  # Position would need to be calculated
-                        reasoning="Vocabulary standardization for consistency"
+                        original=old_term,
+                        improved=new_term,
+                        rationale="Vocabulary standardization for consistency",
+                        confidence=0.9
                     ))
             except Exception:
                 # If parsing fails, create a general patch
                 patches.append(Patch(
                     id=f"vocab_{i}",
-                    type="vocabulary",
+                    type="safe",
+                    category="vocabulary",
                     description=change,
-                    current_text="[vocabulary improvement]",
-                    suggested_text="[improved vocabulary]",
-                    risk_level="safe",
-                    position={"start": 0, "end": 0},
-                    reasoning="Vocabulary improvement based on analysis"
+                    original="[vocabulary improvement]",
+                    improved="[improved vocabulary]",
+                    rationale="Vocabulary improvement based on analysis",
+                    confidence=0.7
                 ))
 
     return patches
@@ -166,13 +166,13 @@ Respond with just the resolved statement (1-2 sentences max):"""
 
             patches.append(Patch(
                 id=f"contradiction_{i}",
-                type="contradiction",
+                type="risky",  # Contradiction resolution changes meaning
+                category="clarity",
                 description=f"Resolve contradiction between statements",
-                current_text=f"{sentence1} ... {sentence2}",
-                suggested_text=resolution.strip(),
-                risk_level="risky",  # Contradiction resolution changes meaning
-                position={"start": 0, "end": 0},  # Would need actual positions
-                reasoning=f"Resolves {contradiction.get('type', 'contradiction')}"
+                original=f"{sentence1} ... {sentence2}",
+                improved=resolution.strip(),
+                rationale=f"Resolves {contradiction.get('type', 'contradiction')}",
+                confidence=0.6
             ))
 
         except Exception as e:
@@ -217,13 +217,13 @@ IMPROVEMENT 2:
         for i, improvement in enumerate(improvements):
             patches.append(Patch(
                 id=f"quality_{i}",
-                type="quality",
+                type="risky",  # Quality changes can alter meaning
+                category="clarity",
                 description=improvement.get("description", "Quality improvement"),
-                current_text=improvement.get("current", "")[:100],
-                suggested_text=improvement.get("suggested", "")[:200],
-                risk_level="risky",  # Quality changes can alter meaning
-                position={"start": 0, "end": 0},
-                reasoning=improvement.get("reasoning", "Improves overall prompt quality")
+                original=improvement.get("current", "")[:100],
+                improved=improvement.get("suggested", "")[:200],
+                rationale=improvement.get("reasoning", "Improves overall prompt quality"),
+                confidence=0.7
             ))
 
     except Exception as e:
@@ -255,13 +255,13 @@ Provide the improved version:"""
 
             patches.append(Patch(
                 id="clarity_overall",
-                type="clarity",
+                type="risky",
+                category="clarity",
                 description="Improve overall clarity and reduce ambiguity",
-                current_text=content[:100] + "..." if len(content) > 100 else content,
-                suggested_text=improved.strip()[:300] + "..." if len(improved.strip()) > 300 else improved.strip(),
-                risk_level="risky",
-                position={"start": 0, "end": len(content)},
-                reasoning=f"Reduces semantic ambiguity (entropy: {entropy:.2f})"
+                original=content[:100] + "..." if len(content) > 100 else content,
+                improved=improved.strip()[:300] + "..." if len(improved.strip()) > 300 else improved.strip(),
+                rationale=f"Reduces semantic ambiguity (entropy: {entropy:.2f})",
+                confidence=0.7
             ))
 
         except Exception as e:
