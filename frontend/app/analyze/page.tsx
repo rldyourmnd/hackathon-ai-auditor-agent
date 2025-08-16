@@ -189,19 +189,19 @@ export default function AnalyzePage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-3 bg-blue-50 rounded">
                         <div className="text-2xl font-bold text-blue-600">
-                          {formatNumber(currentSession.analysis.report.llm_judge_score, 1)}
+                          {formatNumber(currentSession.analysis.report.judge_score?.score, 1)}
                         </div>
                         <div className="text-sm text-gray-600">Judge Score</div>
                       </div>
                       <div className="text-center p-3 bg-green-50 rounded">
                         <div className="text-2xl font-bold text-green-600">
-                          {formatNumber(currentSession.analysis.report.semantic_entropy, 2)}
+                          {formatNumber(currentSession.analysis.report.semantic_entropy?.entropy, 2)}
                         </div>
                         <div className="text-sm text-gray-600">Entropy</div>
                       </div>
                       <div className="text-center p-3 bg-purple-50 rounded">
                         <div className="text-2xl font-bold text-purple-600">
-                          {currentSession.analysis.report.semantic_clusters ?? 'N/A'}
+                          {currentSession.analysis.report.semantic_entropy?.clusters ?? 'N/A'}
                         </div>
                         <div className="text-sm text-gray-600">Clusters</div>
                       </div>

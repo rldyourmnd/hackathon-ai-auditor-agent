@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from app.schemas.pipeline import PipelineState
 from app.services.llm import get_llm_service
@@ -35,7 +35,7 @@ async def judge_score_node(state: PipelineState) -> PipelineState:
         return state
 
 
-async def _evaluate_with_judge(content: str) -> Dict[str, Any]:
+async def _evaluate_with_judge(content: str) -> dict[str, Any]:
     """Evaluate prompt quality using LLM judge."""
 
     llm = get_llm_service()
@@ -96,25 +96,58 @@ RESPOND IN JSON FORMAT:
 
         # Try to parse JSON response
         try:
+            # First try direct parsing
             result = json.loads(response.strip())
+        except json.JSONDecodeError:
+            # Try to extract JSON from text that might contain other content
+            import re
 
+            json_match = re.search(r"\{.*\}", response, re.DOTALL)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    logger.warning(
+                        f"Failed to parse judge response as JSON: {response[:100]}..."
+                    )
+                    return _parse_judge_fallback(response)
+            else:
+                logger.warning(f"No JSON found in judge response: {response[:100]}...")
+                return _parse_judge_fallback(response)
+
+        try:
             # Validate required fields
-            required_fields = ["clarity", "specificity", "actionability", "completeness", "structure", "overall_score", "reasoning"]
+            required_fields = [
+                "clarity",
+                "specificity",
+                "actionability",
+                "completeness",
+                "structure",
+                "overall_score",
+                "reasoning",
+            ]
 
             for field in required_fields:
                 if field not in result:
                     raise ValueError(f"Missing field: {field}")
 
             # Ensure scores are in valid range
-            for score_field in ["clarity", "specificity", "actionability", "completeness", "structure", "overall_score"]:
+            for score_field in [
+                "clarity",
+                "specificity",
+                "actionability",
+                "completeness",
+                "structure",
+                "overall_score",
+            ]:
                 score = result[score_field]
-                if not isinstance(score, (int, float)) or score < 1 or score > 10:
+                if not isinstance(score, int | float) or score < 1 or score > 10:
                     result[score_field] = 5.0  # Default fallback
 
             return result
 
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.warning(f"Failed to parse judge response as JSON: {e}")
+        except (ValueError, KeyError) as e:
+            logger.warning(f"Failed to validate judge response: {e}")
             return _parse_judge_fallback(response)
 
     except Exception as e:
@@ -128,11 +161,11 @@ RESPOND IN JSON FORMAT:
             "overall_score": 5.0,
             "reasoning": f"Evaluation failed: {str(e)}",
             "strengths": [],
-            "weaknesses": ["Evaluation could not be completed"]
+            "weaknesses": ["Evaluation could not be completed"],
         }
 
 
-def _parse_judge_fallback(response: str) -> Dict[str, Any]:
+def _parse_judge_fallback(response: str) -> dict[str, Any]:
     """Fallback parser if JSON parsing fails."""
     import re
 
@@ -161,16 +194,26 @@ def _parse_judge_fallback(response: str) -> Dict[str, Any]:
 
     # Calculate overall score if not found
     if "overall_score" not in scores:
-        individual_scores = [scores.get(f, 5.0) for f in ["clarity", "specificity", "actionability", "completeness", "structure"]]
+        individual_scores = [
+            scores.get(f, 5.0)
+            for f in [
+                "clarity",
+                "specificity",
+                "actionability",
+                "completeness",
+                "structure",
+            ]
+        ]
         scores["overall_score"] = sum(individual_scores) / len(individual_scores)
 
     # Extract reasoning if possible
-    reasoning_match = re.search(r"reasoning[\"\\s:]*([^\\n\\r}]+)", response, re.IGNORECASE)
-    reasoning = reasoning_match.group(1).strip() if reasoning_match else "Unable to parse detailed reasoning"
+    reasoning_match = re.search(
+        r"reasoning[\"\\s:]*([^\\n\\r}]+)", response, re.IGNORECASE
+    )
+    reasoning = (
+        reasoning_match.group(1).strip()
+        if reasoning_match
+        else "Unable to parse detailed reasoning"
+    )
 
-    return {
-        **scores,
-        "reasoning": reasoning,
-        "strengths": [],
-        "weaknesses": []
-    }
+    return {**scores, "reasoning": reasoning, "strengths": [], "weaknesses": []}
