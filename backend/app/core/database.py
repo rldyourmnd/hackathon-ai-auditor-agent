@@ -1,8 +1,9 @@
-from sqlmodel import SQLModel, create_engine, Session, select
+import logging
+from typing import AsyncGenerator, Generator
+
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-import logging
-from typing import Generator, AsyncGenerator
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.core.config import settings
 
@@ -79,14 +80,14 @@ async def init_db():
     """Initialize database with initial data if needed."""
     try:
         # Import models to register them
-        from app.models.prompts import Prompt, PromptRelation, AnalysisResult
-        
+        from app.models.prompts import AnalysisResult, Prompt, PromptRelation
+
         # Create tables
         create_tables()
-        
+
         # Add any initial data here if needed
         logger.info("Database initialized successfully")
-        
+
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
         raise
@@ -107,7 +108,7 @@ async def check_db_connection() -> bool:
 # Database utilities
 class DatabaseManager:
     """Database management utilities."""
-    
+
     @staticmethod
     async def get_session_count() -> int:
         """Get current number of database sessions."""
@@ -115,7 +116,7 @@ class DatabaseManager:
             return async_engine.pool.size()
         except:
             return 0
-    
+
     @staticmethod
     async def health_check() -> dict:
         """Comprehensive database health check."""
@@ -126,21 +127,21 @@ class DatabaseManager:
             "pool_checked_out": 0,
             "pool_overflow": 0,
         }
-        
+
         try:
             # Test connection
             health_data["connected"] = await check_db_connection()
-            
+
             # Pool statistics
             pool = async_engine.pool
             health_data["pool_size"] = pool.size()
             health_data["pool_checked_in"] = pool.checkedin()
             health_data["pool_checked_out"] = pool.checkedout()
             health_data["pool_overflow"] = pool.overflow()
-            
+
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
-        
+
         return health_data
 
 

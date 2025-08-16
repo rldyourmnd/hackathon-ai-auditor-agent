@@ -17,11 +17,35 @@
       "Bash(PYTHONPATH=. alembic revision --autogenerate -m \"Initial tables\")",
       "Bash(timeout 10 curl -X POST http://localhost:8000/analyze )",
       "Bash(timeout 10 curl -s http://localhost:8000/healthz)",
+      "Bash(timeout 30 curl -s http://localhost:8000/healthz)",
+      "Bash(timeout 30 curl -X POST http://localhost:8000/analyze/ )",
+      "Bash(timeout 30 curl -X POST http://localhost:8000/analyze/ )",
+      "Bash(timeout:*)",
+      "Bash(pip install:*)",
+      "Bash(pre-commit:*)",
+      "Bash(./dev.bat help)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(grep:*)",
+      "Bash(__NEW_LINE__ echo \"✓ 1. POST /analyze - WORKING (verified above)\")",
+      "Bash(__NEW_LINE__ echo \"\")",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(PORT=3000 npm run dev)",
+      "Bash(export OPENAI_MODEL_CHEAP=gpt-4o-mini)",
+      "Bash(export:*)",
+      "Bash(export OPENAI_MODEL_PREMIUM=gpt-4o)",
+      "Bash(echo:*)",
+      "Bash(cat:*)",
       "Bash(git merge:*)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
-      "C:\\c\\Users\\Administrator\\Desktop\\projects"
+      "C:\\c\\Users\\Administrator\\Desktop\\projects",
+      "C:\\Users\\Administrator\\Desktop\\projects",
+      "C:\\c\\Users\\Administrator\\Desktop\\projects\\hackathon"
     ]
   }
 }

@@ -257,7 +257,7 @@ make lint
 
 ### Development Commands
 - `make up` - Start all services
-- `make down` - Stop all services  
+- `make down` - Stop all services
 - `make logs` - View service logs
 - `make lint` - Run code linting
 - `make test` - Execute test suite
@@ -266,7 +266,7 @@ make lint
 
 The system includes pre-configured demo prompts covering:
 - **Coding Agent**: Software development assistance prompts
-- **FAQ Agent**: Customer support automation prompts  
+- **FAQ Agent**: Customer support automation prompts
 - **Content Writing**: Article and documentation generation prompts
 
 Each demo case demonstrates different types of quality issues and improvement opportunities.

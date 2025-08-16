@@ -16,7 +16,7 @@ docker compose logs -f      # View all service logs
 docker compose ps          # Check container status
 
 # Windows batch commands (from project root)
-dev up          # Start all services 
+dev up          # Start all services
 dev down        # Stop all services
 dev logs        # View service logs
 dev ps          # Check status
@@ -158,7 +158,7 @@ The project follows a phased development approach as outlined in AI_Tasks.md:
 
 The system includes three demo prompt categories:
 1. **Coding Agent** - Software development assistance prompts
-2. **FAQ Agent** - Customer support automation prompts  
+2. **FAQ Agent** - Customer support automation prompts
 3. **Article Writing** - Content generation prompts
 
 Each demonstrates different quality issues and improvement opportunities.
