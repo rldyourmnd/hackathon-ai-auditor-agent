@@ -80,22 +80,22 @@ def _detect_pattern_contradictions(sentences: List[str]) -> List[Dict[str, Any]]
         {
             "positive": [r"\\bmust\\b", r"\\brequired\\b", r"\\bmandatory\\b", r"\\bshould\\b"],
             "negative": [r"\\bmust not\\b", r"\\bshould not\\b", r"\\bforbidden\\b", r"\\bprohibited\\b"],
-            "type": "requirement_contradiction"
+            "type": "intra"
         },
         {
             "positive": [r"\\balways\\b", r"\\bever\\b", r"\\binvariably\\b"],
             "negative": [r"\\bnever\\b", r"\\bnot ever\\b", r"\\bunder no circumstances\\b"],
-            "type": "frequency_contradiction"
+            "type": "intra"
         },
         {
             "positive": [r"\\ball\\b", r"\\bevery\\b", r"\\beach\\b"],
             "negative": [r"\\bnone\\b", r"\\bno\\b(?=\\s+\\w)", r"\\bnot any\\b"],
-            "type": "quantifier_contradiction"
+            "type": "intra"
         },
         {
             "positive": [r"\\binclude\\b", r"\\badd\\b", r"\\bcontain\\b"],
             "negative": [r"\\bexclude\\b", r"\\bremove\\b", r"\\bomit\\b"],
-            "type": "inclusion_contradiction"
+            "type": "intra"
         }
     ]
 
@@ -167,7 +167,7 @@ Format: YES/NO/MAYBE: [explanation if needed]"""
                 if response.startswith("YES"):
                     explanation = response[4:].strip(" :")
                     contradictions.append({
-                        "type": "semantic_contradiction",
+                        "type": "intra",
                         "severity": "high",
                         "sentence_1": sentence1,
                         "sentence_2": sentence2,
@@ -178,7 +178,7 @@ Format: YES/NO/MAYBE: [explanation if needed]"""
                 elif response.startswith("MAYBE"):
                     explanation = response[6:].strip(" :")
                     contradictions.append({
-                        "type": "potential_contradiction",
+                        "type": "intra",
                         "severity": "low",
                         "sentence_1": sentence1,
                         "sentence_2": sentence2,

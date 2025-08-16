@@ -1,7 +1,7 @@
 """Patch generation pipeline node."""
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from app.schemas.pipeline import PipelineState
 from app.schemas.prompts import Patch
@@ -30,17 +30,23 @@ async def propose_patches_node(state: PipelineState) -> PipelineState:
 
         # 3. Contradiction fixes
         if state.contradictions:
-            contradiction_patches = await _generate_contradiction_patches(content, state.contradictions)
+            contradiction_patches = await _generate_contradiction_patches(
+                content, state.contradictions
+            )
             patches.extend(contradiction_patches)
 
         # 4. General quality improvements based on judge score
         if state.llm_judge_score and state.llm_judge_score < 8.0:
-            quality_patches = await _generate_quality_patches(content, state.llm_judge_score, state.llm_judge_reasoning or "")
+            quality_patches = await _generate_quality_patches(
+                content, state.llm_judge_score, state.llm_judge_reasoning or ""
+            )
             patches.extend(quality_patches)
 
         # 5. Semantic clarity improvements
         if state.entropy_score and state.entropy_score > 0.5:
-            clarity_patches = await _generate_clarity_patches(content, state.entropy_score)
+            clarity_patches = await _generate_clarity_patches(
+                content, state.entropy_score
+            )
             patches.extend(clarity_patches)
 
         # Update state
@@ -49,7 +55,9 @@ async def propose_patches_node(state: PipelineState) -> PipelineState:
         safe_count = sum(1 for p in patches if p.type == "safe")
         risky_count = sum(1 for p in patches if p.type == "risky")
 
-        logger.info(f"Generated {len(patches)} patches ({safe_count} safe, {risky_count} risky)")
+        logger.info(
+            f"Generated {len(patches)} patches ({safe_count} safe, {risky_count} risky)"
+        )
 
         return state
 
@@ -59,44 +67,50 @@ async def propose_patches_node(state: PipelineState) -> PipelineState:
         return state
 
 
-async def _generate_format_patches(content: str, format_type: str) -> List[Patch]:
+async def _generate_format_patches(content: str, format_type: str) -> list[Patch]:
     """Generate patches for format issues."""
     patches = []
 
     if format_type == "xml":
         # Basic XML fixes
         if "<" in content and not content.strip().startswith("<"):
-            patches.append(Patch(
-                id="xml_root_wrap",
-                type="safe",
-                category="markup",
-                description="Wrap content in XML root element",
-                original=content[:100] + "..." if len(content) > 100 else content,
-                improved=f"<root>{content}</root>",
-                rationale="XML content should be wrapped in a root element",
-                confidence=0.9
-            ))
+            patches.append(
+                Patch(
+                    id="xml_root_wrap",
+                    type="safe",
+                    category="markup",
+                    description="Wrap content in XML root element",
+                    original=content[:100] + "..." if len(content) > 100 else content,
+                    improved=f"<root>{content}</root>",
+                    rationale="XML content should be wrapped in a root element",
+                    confidence=0.9,
+                )
+            )
 
     elif format_type == "markdown":
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         # Check for missing title
-        if not any(line.strip().startswith('#') for line in lines[:3]):
-            patches.append(Patch(
-                id="md_add_title",
-                type="safe",
-                category="markup",
-                description="Add markdown title",
-                original=lines[0][:50] + "..." if lines and len(lines[0]) > 50 else (lines[0] if lines else ""),
-                improved=f"# Document Title\n\n{lines[0] if lines else ''}",
-                rationale="Markdown documents should have a clear title",
-                confidence=0.8
-            ))
+        if not any(line.strip().startswith("#") for line in lines[:3]):
+            patches.append(
+                Patch(
+                    id="md_add_title",
+                    type="safe",
+                    category="markup",
+                    description="Add markdown title",
+                    original=lines[0][:50] + "..."
+                    if lines and len(lines[0]) > 50
+                    else (lines[0] if lines else ""),
+                    improved=f"# Document Title\n\n{lines[0] if lines else ''}",
+                    rationale="Markdown documents should have a clear title",
+                    confidence=0.8,
+                )
+            )
 
     return patches
 
 
-def _generate_vocab_patches(vocab_changes: List[str]) -> List[Patch]:
+def _generate_vocab_patches(vocab_changes: list[str]) -> list[Patch]:
     """Convert vocabulary changes to patches."""
     patches = []
 
@@ -110,33 +124,39 @@ def _generate_vocab_patches(vocab_changes: List[str]) -> List[Patch]:
                     old_term = parts[1]
                     new_term = parts[3]
 
-                    patches.append(Patch(
+                    patches.append(
+                        Patch(
+                            id=f"vocab_{i}",
+                            type="safe",
+                            category="vocabulary",
+                            description=f"Replace '{old_term}' with '{new_term}'",
+                            original=old_term,
+                            improved=new_term,
+                            rationale="Vocabulary standardization for consistency",
+                            confidence=0.9,
+                        )
+                    )
+            except Exception:
+                # If parsing fails, create a general patch
+                patches.append(
+                    Patch(
                         id=f"vocab_{i}",
                         type="safe",
                         category="vocabulary",
-                        description=f"Replace '{old_term}' with '{new_term}'",
-                        original=old_term,
-                        improved=new_term,
-                        rationale="Vocabulary standardization for consistency",
-                        confidence=0.9
-                    ))
-            except Exception:
-                # If parsing fails, create a general patch
-                patches.append(Patch(
-                    id=f"vocab_{i}",
-                    type="safe",
-                    category="vocabulary",
-                    description=change,
-                    original="[vocabulary improvement]",
-                    improved="[improved vocabulary]",
-                    rationale="Vocabulary improvement based on analysis",
-                    confidence=0.7
-                ))
+                        description=change,
+                        original="[vocabulary improvement]",
+                        improved="[improved vocabulary]",
+                        rationale="Vocabulary improvement based on analysis",
+                        confidence=0.7,
+                    )
+                )
 
     return patches
 
 
-async def _generate_contradiction_patches(content: str, contradictions: List[Dict[str, Any]]) -> List[Patch]:
+async def _generate_contradiction_patches(
+    content: str, contradictions: list[dict[str, Any]]
+) -> list[Patch]:
     """Generate patches to resolve contradictions."""
     patches = []
 
@@ -164,16 +184,18 @@ Respond with just the resolved statement (1-2 sentences max):"""
 
             resolution = await llm.ask("standard", prompt, max_tokens=150)
 
-            patches.append(Patch(
-                id=f"contradiction_{i}",
-                type="risky",  # Contradiction resolution changes meaning
-                category="clarity",
-                description=f"Resolve contradiction between statements",
-                original=f"{sentence1} ... {sentence2}",
-                improved=resolution.strip(),
-                rationale=f"Resolves {contradiction.get('type', 'contradiction')}",
-                confidence=0.6
-            ))
+            patches.append(
+                Patch(
+                    id=f"contradiction_{i}",
+                    type="risky",  # Contradiction resolution changes meaning
+                    category="clarity",
+                    description="Resolve contradiction between statements",
+                    original=f"{sentence1} ... {sentence2}",
+                    improved=resolution.strip(),
+                    rationale=f"Resolves {contradiction.get('type', 'contradiction')}",
+                    confidence=0.6,
+                )
+            )
 
         except Exception as e:
             logger.error(f"Failed to generate contradiction patch {i}: {e}")
@@ -181,7 +203,9 @@ Respond with just the resolved statement (1-2 sentences max):"""
     return patches
 
 
-async def _generate_quality_patches(content: str, judge_score: float, reasoning: str) -> List[Patch]:
+async def _generate_quality_patches(
+    content: str, judge_score: float, reasoning: str
+) -> list[Patch]:
     """Generate patches to improve overall quality."""
     patches = []
 
@@ -215,16 +239,20 @@ IMPROVEMENT 2:
         improvements = _parse_improvements(response)
 
         for i, improvement in enumerate(improvements):
-            patches.append(Patch(
-                id=f"quality_{i}",
-                type="risky",  # Quality changes can alter meaning
-                category="clarity",
-                description=improvement.get("description", "Quality improvement"),
-                original=improvement.get("current", "")[:100],
-                improved=improvement.get("suggested", "")[:200],
-                rationale=improvement.get("reasoning", "Improves overall prompt quality"),
-                confidence=0.7
-            ))
+            patches.append(
+                Patch(
+                    id=f"quality_{i}",
+                    type="risky",  # Quality changes can alter meaning
+                    category="clarity",
+                    description=improvement.get("description", "Quality improvement"),
+                    original=improvement.get("current", "")[:100],
+                    improved=improvement.get("suggested", "")[:200],
+                    rationale=improvement.get(
+                        "reasoning", "Improves overall prompt quality"
+                    ),
+                    confidence=0.7,
+                )
+            )
 
     except Exception as e:
         logger.error(f"Failed to generate quality patches: {e}")
@@ -232,7 +260,7 @@ IMPROVEMENT 2:
     return patches
 
 
-async def _generate_clarity_patches(content: str, entropy: float) -> List[Patch]:
+async def _generate_clarity_patches(content: str, entropy: float) -> list[Patch]:
     """Generate patches to improve semantic clarity."""
     patches = []
 
@@ -253,16 +281,20 @@ Provide the improved version:"""
 
             improved = await llm.ask("standard", prompt, max_tokens=len(content) + 200)
 
-            patches.append(Patch(
-                id="clarity_overall",
-                type="risky",
-                category="clarity",
-                description="Improve overall clarity and reduce ambiguity",
-                original=content[:100] + "..." if len(content) > 100 else content,
-                improved=improved.strip()[:300] + "..." if len(improved.strip()) > 300 else improved.strip(),
-                rationale=f"Reduces semantic ambiguity (entropy: {entropy:.2f})",
-                confidence=0.7
-            ))
+            patches.append(
+                Patch(
+                    id="clarity_overall",
+                    type="risky",
+                    category="clarity",
+                    description="Improve overall clarity and reduce ambiguity",
+                    original=content[:100] + "..." if len(content) > 100 else content,
+                    improved=improved.strip()[:300] + "..."
+                    if len(improved.strip()) > 300
+                    else improved.strip(),
+                    rationale=f"Reduces semantic ambiguity (entropy: {entropy:.2f})",
+                    confidence=0.7,
+                )
+            )
 
         except Exception as e:
             logger.error(f"Failed to generate clarity patch: {e}")
@@ -270,7 +302,7 @@ Provide the improved version:"""
     return patches
 
 
-def _parse_improvements(text: str) -> List[Dict[str, str]]:
+def _parse_improvements(text: str) -> list[dict[str, str]]:
     """Parse improvement suggestions from LLM response."""
     improvements = []
 
@@ -281,27 +313,31 @@ def _parse_improvements(text: str) -> List[Dict[str, str]]:
     matches = re.findall(pattern, text, re.DOTALL | re.IGNORECASE)
 
     for match in matches:
-        lines = [line.strip() for line in match.strip().split('\n') if line.strip()]
+        lines = [line.strip() for line in match.strip().split("\n") if line.strip()]
 
         improvement = {}
         current_key = None
 
         for line in lines:
-            if line.lower().startswith('change:'):
-                improvement['current'] = line[7:].strip()
-                current_key = 'current'
-            elif line.lower().startswith('to:'):
-                improvement['suggested'] = line[3:].strip()
-                current_key = 'suggested'
-            elif line.lower().startswith('why:'):
-                improvement['reasoning'] = line[4:].strip()
-                current_key = 'reasoning'
-            elif current_key and not any(line.lower().startswith(prefix) for prefix in ['change:', 'to:', 'why:']):
+            if line.lower().startswith("change:"):
+                improvement["current"] = line[7:].strip()
+                current_key = "current"
+            elif line.lower().startswith("to:"):
+                improvement["suggested"] = line[3:].strip()
+                current_key = "suggested"
+            elif line.lower().startswith("why:"):
+                improvement["reasoning"] = line[4:].strip()
+                current_key = "reasoning"
+            elif current_key and not any(
+                line.lower().startswith(prefix) for prefix in ["change:", "to:", "why:"]
+            ):
                 # Continue previous field
                 improvement[current_key] += " " + line
 
-        if improvement.get('current') and improvement.get('suggested'):
-            improvement['description'] = f"Change '{improvement['current'][:30]}...' to improve quality"
+        if improvement.get("current") and improvement.get("suggested"):
+            improvement[
+                "description"
+            ] = f"Change '{improvement['current'][:30]}...' to improve quality"
             improvements.append(improvement)
 
     return improvements

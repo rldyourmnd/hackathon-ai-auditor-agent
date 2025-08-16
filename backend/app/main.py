@@ -27,13 +27,30 @@ class JSONFormatter(logging.Formatter):
         # Add extra fields if present
         if hasattr(record, "__dict__"):
             for key, value in record.__dict__.items():
-                if key not in ["name", "msg", "args", "levelname", "levelno", "pathname",
-                              "filename", "module", "lineno", "funcName", "created",
-                              "msecs", "relativeCreated", "thread", "threadName",
-                              "processName", "process", "getMessage"]:
+                if key not in [
+                    "name",
+                    "msg",
+                    "args",
+                    "levelname",
+                    "levelno",
+                    "pathname",
+                    "filename",
+                    "module",
+                    "lineno",
+                    "funcName",
+                    "created",
+                    "msecs",
+                    "relativeCreated",
+                    "thread",
+                    "threadName",
+                    "processName",
+                    "process",
+                    "getMessage",
+                ]:
                     log_entry[key] = value
 
         return json.dumps(log_entry)
+
 
 # Setup logging
 logger = logging.getLogger()
@@ -84,7 +101,7 @@ async def startup_event():
             "environment": settings.env,
             "log_level": settings.log_level,
             "openai_configured": bool(settings.openai_api_key),
-        }
+        },
     )
 
 
@@ -114,7 +131,7 @@ async def health_check():
             "openai_configured": openai_configured,
             "openai_working": openai_working,
             "database_connected": db_health["connected"],
-        }
+        },
     )
 
     return HealthResponse(
@@ -122,7 +139,7 @@ async def health_check():
         message="Curestry API is running",
         version="0.1.0",
         environment=settings.env,
-        openai_configured=openai_working
+        openai_configured=openai_working,
     )
 
 
@@ -132,11 +149,14 @@ async def root():
     return {
         "message": "Welcome to Curestry API",
         "version": "0.1.0",
-        "docs": "/docs" if settings.is_development else "Documentation disabled in production",
-        "health": "/healthz"
+        "docs": "/docs"
+        if settings.is_development
+        else "Documentation disabled in production",
+        "health": "/healthz",
     }
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -30,7 +30,7 @@ class PromptRelation(PromptRelationBase, table=True):
     """Prompt relationship model."""
     id: str                           # UUID primary key
     source_id: str                    # Source prompt ID
-    target_id: str                    # Target prompt ID  
+    target_id: str                    # Target prompt ID
     relation_type: str                # depends_on|overrides|conflicts_with
     description: Optional[str]         # Relationship description
     extra_metadata: Dict[str, Any]    # Additional relationship data
@@ -59,7 +59,7 @@ class PromptRelation(PromptRelationBase, table=True):
 async def check_prompt_conflicts(prompt_data: PromptCreate):
     """Check prompt for conflicts with existing prompts."""
     # 1. Search for similar prompts by name/content
-    # 2. Analyze conflicts and contradictions  
+    # 2. Analyze conflicts and contradictions
     # 3. Generate suggestions for relationships
     # 4. Return conflict score and recommendations
 ```
@@ -99,17 +99,17 @@ async def check_prompt_conflicts(prompt_data: PromptCreate):
 ```python
 class PromptBaseService:
     """Service for managing prompts in the prompt-base."""
-    
+
     # Core CRUD operations
     async def create_prompt(prompt_data: PromptCreate) -> PromptRead
     async def get_prompt(prompt_id: str) -> Optional[PromptRead]
     async def update_prompt(prompt_id: str, update_data: PromptUpdate)
     async def delete_prompt(prompt_id: str) -> bool
-    
+
     # Advanced operations
     async def list_prompts(skip, limit, tags, language, format_type)
     async def search_prompts(query: str, limit: int)
-    
+
     # Relationship management
     async def create_relation(relation_data: PromptRelationCreate)
     async def get_prompt_relations(prompt_id: str)
@@ -200,7 +200,7 @@ CREATE TABLE prompt_relations (
 ### Service Implementation
 - `backend/app/services/prompt_base.py` - Complete CRUD service layer
 
-### API Implementation  
+### API Implementation
 - `backend/app/api/routers/prompt_base.py` - Full REST API endpoints
 
 ### Database Schema
@@ -216,7 +216,7 @@ CREATE TABLE prompt_relations (
 
 ### ✅ Beyond Basic Requirements
 - **Advanced search**: Content-based search with ILIKE queries
-- **Tag system**: Multi-tag filtering and categorization  
+- **Tag system**: Multi-tag filtering and categorization
 - **Metadata support**: Extensible metadata system
 - **Relationship types**: Support for depends_on, overrides, conflicts_with
 - **Pagination**: Efficient large dataset handling

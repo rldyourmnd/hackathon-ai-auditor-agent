@@ -28,7 +28,9 @@
       "Bash(git push:*)",
       "Bash(git checkout:*)",
       "Bash(git commit:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(__NEW_LINE__ echo \"✓ 1. POST /analyze - WORKING (verified above)\")",
+      "Bash(__NEW_LINE__ echo \"\")"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [

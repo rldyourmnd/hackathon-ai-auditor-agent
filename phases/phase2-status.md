@@ -8,7 +8,7 @@
 All pipeline nodes implemented in `backend/app/pipeline/`:
 
 1. **`detect_lang`** ✅ - Language detection using LLM
-2. **`maybe_translate_to_en`** ✅ - Conditional translation to English  
+2. **`maybe_translate_to_en`** ✅ - Conditional translation to English
 3. **`ensure_format`** ✅ - Format validation (xml|md|text)
 4. **`lint_markup`** ✅ - Safe markup fixes (closing tags, headers)
 5. **`vocab_unify`** ✅ - Safe lexical replacements and canonization
@@ -34,7 +34,7 @@ class PipelineState(BaseModel):
     # Input data
     prompt_content: str
     format_type: Literal["auto", "markdown", "xml", "text"]
-    
+
     # Processing results
     detected_language: Optional[str] = None
     translated: bool = False
@@ -45,7 +45,7 @@ class PipelineState(BaseModel):
     llm_judge_score: Optional[float] = None
     patches: List[Patch] = []
     clarify_questions: List[ClarifyQuestion] = []
-    
+
     # Metadata and error tracking
     processing_started: datetime
     processing_completed: Optional[datetime] = None
@@ -167,7 +167,7 @@ class PipelineState(BaseModel):
 ### ✅ Successful Test Cases
 ```bash
 ✅ Simple coding prompt: Analysis completed with metrics
-✅ Complex prompts: Multi-dimensional analysis working  
+✅ Complex prompts: Multi-dimensional analysis working
 ✅ Semantic entropy: Embeddings and clustering functional
 ✅ Judge scoring: Multi-criteria evaluation working
 ✅ Patch generation: Safe/risky classification working

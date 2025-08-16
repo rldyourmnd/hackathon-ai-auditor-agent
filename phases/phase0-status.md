@@ -37,7 +37,7 @@
 - [x] All hooks tested and functional
 
 ### ✅ Makefile
-- [x] `make up` - Start all services 
+- [x] `make up` - Start all services
 - [x] `make down` - Stop all services
 - [x] `make logs` - View service logs
 - [x] `make lint` - Run all linters
@@ -64,7 +64,7 @@
 ENV=development
 LOG_LEVEL=INFO
 
-# Database/Cache ✅  
+# Database/Cache ✅
 POSTGRES_USER=curestry
 POSTGRES_PASSWORD=secure_password
 POSTGRES_DB=curestry
@@ -74,7 +74,7 @@ REDIS_URL=redis://redis:6379/0
 # LLM/Embeddings Providers ✅
 OPENAI_API_KEY=sk-proj-... (configured and working)
 OPENAI_MODEL_CHEAP=gpt-4o-mini (updated from gpt-5-nano)
-OPENAI_MODEL_STANDARD=gpt-4o-mini (updated from gpt-5-mini) 
+OPENAI_MODEL_STANDARD=gpt-4o-mini (updated from gpt-5-mini)
 OPENAI_MODEL_PREMIUM=gpt-4o-mini (updated from gpt-5-mini)
 EMBEDDINGS_PROVIDER=openai ✅
 
@@ -95,12 +95,12 @@ NEXT_PUBLIC_API_BASE=http://localhost:8000
 
 ### Infrastructure
 - `infra/docker-compose.yml` - Multi-service orchestration
-- `infra/Dockerfile.api` - Python FastAPI container  
+- `infra/Dockerfile.api` - Python FastAPI container
 - `infra/Dockerfile.web` - Node.js Next.js container
 - `Makefile` - Development commands
 - `dev.bat` - Windows batch wrapper
 
-### Configuration  
+### Configuration
 - `.env` - Environment variables (all required vars)
 - `.pre-commit-config.yaml` - Code quality hooks
 - `backend/pyproject.toml` - Python project config

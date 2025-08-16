@@ -15,7 +15,7 @@
 ### ✅ Pydantic v2 Schemas
 - [x] **`PromptInput`** - Input prompt validation schema
 - [x] **`MetricReport`** - Comprehensive analysis results
-- [x] **`Patch`** - Improvement suggestions with safe/risky categorization  
+- [x] **`Patch`** - Improvement suggestions with safe/risky categorization
 - [x] **`ClarifyQuestion/Answer`** - Interactive clarification system
 - [x] **`PromptImproved`** - Final processed output
 - [x] **Additional schemas**: `AnalyzeRequest`, `AnalyzeResponse`, `HealthResponse`
@@ -25,7 +25,7 @@
 ### ✅ SQLAlchemy/SQLModel Configuration
 - [x] **Database models** in `app/models/prompts.py`:
   - `Prompt` - Prompt storage with metadata
-  - `PromptRelation` - Relationships between prompts  
+  - `PromptRelation` - Relationships between prompts
   - `AnalysisResult` - Analysis history storage
 - [x] **Connection management** with sync and async engines
 - [x] **Connection pooling** with proper configuration
@@ -109,7 +109,7 @@ app/
 - [x] Default values for development environment
 - [x] Type validation and constraints
 
-### ✅ API Integration Testing  
+### ✅ API Integration Testing
 - [x] OpenAI API connectivity verified
 - [x] Embedding service functional testing
 - [x] Model switching validation

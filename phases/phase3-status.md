@@ -17,7 +17,7 @@
 async def detect_language_node(state: PipelineState) -> PipelineState:
     """Detect prompt language using LLM analysis."""
     # Supports 15+ languages: en, es, fr, de, ru, zh, ja, etc.
-    
+
 async def maybe_translate_to_english_node(state: PipelineState) -> PipelineState:
     """Translate non-English prompts to English if needed."""
     # High-quality LLM-based translation with confidence scoring
@@ -31,7 +31,7 @@ async def maybe_translate_to_english_node(state: PipelineState) -> PipelineState
 
 ## Markup Validation ✅
 
-### ✅ Implementation Status  
+### ✅ Implementation Status
 - [x] **XML/MD validator with auto-fix capabilities**
 - [x] **Safe markup fixes** (closing tags, headers)
 - [x] **`markup_valid` and `fixes_count` metrics**
@@ -42,7 +42,7 @@ async def maybe_translate_to_english_node(state: PipelineState) -> PipelineState
 async def ensure_format_node(state: PipelineState) -> PipelineState:
     """Validate and standardize prompt format."""
     # Supports: auto, text, markdown, xml
-    
+
 async def lint_markup_node(state: PipelineState) -> PipelineState:
     """Apply safe markup fixes to improve structure."""
     # Safe fixes: closing tags, header structure, escaping
@@ -84,7 +84,7 @@ async def vocab_unify_node(state: PipelineState) -> PipelineState:
 
 ### ✅ Technical Details
 ```python
-# contradiction_nodes.py  
+# contradiction_nodes.py
 async def find_contradictions_node(state: PipelineState) -> PipelineState:
     """Detect logical contradictions within prompt content."""
     # Intra-prompt: sentence-level contradiction analysis
@@ -139,7 +139,7 @@ async def judge_score_node(state: PipelineState) -> PipelineState:
 
 ### ✅ Features Delivered
 - **Multi-dimensional evaluation**: Clarity, specificity, actionability
-- **Structured scoring**: 0-10 scale with detailed rationales  
+- **Structured scoring**: 0-10 scale with detailed rationales
 - **JSON format**: Structured, parseable output
 - **Quality rubric**: Comprehensive evaluation criteria
 
@@ -209,7 +209,7 @@ All Phase 3 functionality implemented in Phase 2 pipeline files:
 ### ✅ Module Testing
 ```bash
 ✅ Language Detection: Multi-language support working
-✅ Markup Validation: Auto-fix capabilities functional  
+✅ Markup Validation: Auto-fix capabilities functional
 ✅ Vocabulary Analysis: Frequency and consistency analysis working
 ✅ Contradiction Detection: Intra-prompt analysis operational
 ✅ Semantic Entropy: Embedding-based clustering functional
