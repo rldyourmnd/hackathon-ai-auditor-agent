@@ -5,10 +5,13 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "test": "vitest"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "@types/jest": "^29.0.0"
   }
 }
 

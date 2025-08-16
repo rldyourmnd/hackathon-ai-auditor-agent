@@ -7,7 +7,12 @@
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@extensions/shared": ["../shared/src"],
+      "@extensions/shared/*": ["../shared/src/*"]
+    }
   },
   "include": ["src"]
 }
