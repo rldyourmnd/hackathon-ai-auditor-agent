@@ -1,4 +1,5 @@
 from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -30,9 +31,9 @@ class Settings(BaseSettings):
 
     # OpenAI settings
     openai_api_key: str = Field(default="", description="OpenAI API key (optional for demo)", alias="OPENAI_API_KEY")
-    openai_model_cheap: str = Field(default="gpt-5-nano", alias="OPENAI_MODEL_CHEAP")
-    openai_model_standard: str = Field(default="gpt-5-mini", alias="OPENAI_MODEL_STANDARD")
-    openai_model_premium: str = Field(default="gpt-5-mini", alias="OPENAI_MODEL_PREMIUM")
+    openai_model_cheap: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL_CHEAP")
+    openai_model_standard: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL_STANDARD")
+    openai_model_premium: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL_PREMIUM")
 
     # Analysis configuration
     entropy_n: int = Field(default=8, description="Number of samples for semantic entropy")

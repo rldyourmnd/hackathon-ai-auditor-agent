@@ -1,8 +1,9 @@
-from datetime import datetime
-from typing import Optional, List, Dict, Any
-from sqlmodel import SQLModel, Field, Relationship, JSON, Column
-from sqlalchemy import Text
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import Text
+from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 
 class PromptBase(SQLModel):
@@ -21,20 +22,20 @@ class PromptBase(SQLModel):
 class Prompt(PromptBase, table=True):
     """Prompt model for storing prompts in prompt-base."""
     __tablename__ = "prompts"
-    
+
     id: Optional[str] = Field(
         default_factory=lambda: str(uuid.uuid4()),
         primary_key=True,
         description="Unique prompt identifier"
     )
-    
+
     # Relationships
     relations_from: List["PromptRelation"] = Relationship(
         back_populates="source_prompt",
         sa_relationship_kwargs={"foreign_keys": "PromptRelation.source_id"}
     )
     relations_to: List["PromptRelation"] = Relationship(
-        back_populates="target_prompt", 
+        back_populates="target_prompt",
         sa_relationship_kwargs={"foreign_keys": "PromptRelation.target_id"}
     )
     analyses: List["AnalysisResult"] = Relationship(back_populates="prompt")
@@ -75,14 +76,14 @@ class PromptRelationBase(SQLModel):
 class PromptRelation(PromptRelationBase, table=True):
     """Prompt relationship model."""
     __tablename__ = "prompt_relations"
-    
+
     id: Optional[str] = Field(
         default_factory=lambda: str(uuid.uuid4()),
         primary_key=True
     )
     source_id: str = Field(foreign_key="prompts.id", description="Source prompt ID")
     target_id: str = Field(foreign_key="prompts.id", description="Target prompt ID")
-    
+
     # Relationships
     source_prompt: Prompt = Relationship(
         back_populates="relations_from",
@@ -114,7 +115,7 @@ class AnalysisResultBase(SQLModel):
     detected_language: str = Field(max_length=10, description="Detected language")
     translated: bool = Field(default=False, description="Whether content was translated")
     format_valid: bool = Field(description="Whether format is valid")
-    
+
     # Metrics
     overall_score: float = Field(ge=0, le=10, description="Overall quality score")
     judge_score: float = Field(ge=0, le=10, description="LLM judge score")
@@ -122,12 +123,12 @@ class AnalysisResultBase(SQLModel):
     complexity_score: float = Field(ge=0, le=10, description="Vocabulary complexity")
     length_chars: int = Field(description="Character count")
     length_words: int = Field(description="Word count")
-    
+
     # Analysis data
     contradictions: Optional[List[Dict[str, Any]]] = Field(default_factory=list, sa_column=Column(JSON))
     patches: Optional[List[Dict[str, Any]]] = Field(default_factory=list, sa_column=Column(JSON))
     clarify_questions: Optional[List[Dict[str, Any]]] = Field(default_factory=list, sa_column=Column(JSON))
-    
+
     # Metadata
     analysis_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -136,13 +137,13 @@ class AnalysisResultBase(SQLModel):
 class AnalysisResult(AnalysisResultBase, table=True):
     """Analysis result model for storing analysis history."""
     __tablename__ = "analysis_results"
-    
+
     id: Optional[str] = Field(
         default_factory=lambda: str(uuid.uuid4()),
         primary_key=True
     )
     prompt_id: Optional[str] = Field(foreign_key="prompts.id", description="Associated prompt ID (if stored)")
-    
+
     # Relationships
     prompt: Optional[Prompt] = Relationship(back_populates="analyses")
 
@@ -162,6 +163,6 @@ class AnalysisResultRead(AnalysisResultBase):
 # Export all models for easy imports
 __all__ = [
     "Prompt", "PromptCreate", "PromptRead", "PromptUpdate",
-    "PromptRelation", "PromptRelationCreate", "PromptRelationRead", 
+    "PromptRelation", "PromptRelationCreate", "PromptRelationRead",
     "AnalysisResult", "AnalysisResultCreate", "AnalysisResultRead"
 ]

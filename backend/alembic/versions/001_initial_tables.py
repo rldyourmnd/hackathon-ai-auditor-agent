@@ -1,14 +1,14 @@
 """Initial tables
 
 Revision ID: 001
-Revises: 
+Revises:
 Create Date: 2025-08-16 10:30:00.000000
 
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
@@ -33,7 +33,7 @@ def upgrade() -> None:
         sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     # Create prompt_relations table
     op.create_table('prompt_relations',
         sa.Column('id', sa.String(), nullable=False),
@@ -47,7 +47,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['target_id'], ['prompts.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     # Create analysis_results table
     op.create_table('analysis_results',
         sa.Column('id', sa.String(), nullable=False),

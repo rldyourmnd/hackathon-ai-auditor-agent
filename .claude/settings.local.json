@@ -16,11 +16,20 @@
       "Bash(alembic init:*)",
       "Bash(PYTHONPATH=. alembic revision --autogenerate -m \"Initial tables\")",
       "Bash(timeout 10 curl -X POST http://localhost:8000/analyze )",
-      "Bash(timeout 10 curl -s http://localhost:8000/healthz)"
+      "Bash(timeout 10 curl -s http://localhost:8000/healthz)",
+      "Bash(timeout 30 curl -s http://localhost:8000/healthz)",
+      "Bash(timeout 30 curl -X POST http://localhost:8000/analyze/ )",
+      "Bash(timeout 30 curl -X POST http://localhost:8000/analyze/ )",
+      "Bash(timeout:*)",
+      "Bash(pip install:*)",
+      "Bash(pre-commit:*)",
+      "Bash(./dev.bat help)",
+      "Bash(git add:*)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
-      "C:\\c\\Users\\Administrator\\Desktop\\projects"
+      "C:\\c\\Users\\Administrator\\Desktop\\projects",
+      "C:\\Users\\Administrator\\Desktop\\projects"
     ]
   }
 }

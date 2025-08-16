@@ -1,14 +1,16 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import logging
 import json
+import logging
 from datetime import datetime
 
-from app.core.config import settings
-from app.core.database import init_db, db_manager
-from app.schemas.prompts import HealthResponse
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.api.routers import analysis
+from app.core.config import settings
+from app.core.database import db_manager, init_db
+from app.schemas.prompts import HealthResponse
 from app.services.llm import get_llm_service
+
 
 # Configure structured JSON logging
 class JSONFormatter(logging.Formatter):
@@ -21,16 +23,16 @@ class JSONFormatter(logging.Formatter):
             "function": record.funcName,
             "line": record.lineno,
         }
-        
+
         # Add extra fields if present
         if hasattr(record, "__dict__"):
             for key, value in record.__dict__.items():
-                if key not in ["name", "msg", "args", "levelname", "levelno", "pathname", 
-                              "filename", "module", "lineno", "funcName", "created", 
-                              "msecs", "relativeCreated", "thread", "threadName", 
+                if key not in ["name", "msg", "args", "levelname", "levelno", "pathname",
+                              "filename", "module", "lineno", "funcName", "created",
+                              "msecs", "relativeCreated", "thread", "threadName",
                               "processName", "process", "getMessage"]:
                     log_entry[key] = value
-        
+
         return json.dumps(log_entry)
 
 # Setup logging
@@ -73,7 +75,7 @@ async def startup_event():
     except Exception as e:
         app_logger.error(f"Database initialization failed: {e}")
         # Don't fail startup - allow API to run without DB for demo
-    
+
     app_logger.info(
         "Curestry API starting up",
         extra={
@@ -89,7 +91,7 @@ async def startup_event():
 async def health_check():
     """Health check endpoint with OpenAI and database connectivity verification."""
     openai_configured = bool(settings.openai_api_key)
-    
+
     # Quick OpenAI connectivity test in development
     openai_working = openai_configured
     if settings.is_development and openai_configured:
@@ -101,10 +103,10 @@ async def health_check():
         except Exception as e:
             app_logger.warning(f"OpenAI connectivity test failed: {e}")
             openai_working = False
-    
+
     # Check database connectivity
     db_health = await db_manager.health_check()
-    
+
     app_logger.info(
         "Health check performed",
         extra={
@@ -113,7 +115,7 @@ async def health_check():
             "database_connected": db_health["connected"],
         }
     )
-    
+
     return HealthResponse(
         status="healthy",
         message="Curestry API is running",

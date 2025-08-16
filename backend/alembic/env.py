@@ -1,19 +1,18 @@
-from logging.config import fileConfig
-import sys
 import os
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+import sys
+from logging.config import fileConfig
 
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 # Add the app directory to the path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 # Import SQLModel and models
 from sqlmodel import SQLModel
+
 from app.core.config import settings
-from app.models.prompts import Prompt, PromptRelation, AnalysisResult
+from app.models.prompts import AnalysisResult, Prompt, PromptRelation
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -78,7 +77,7 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, 
+            connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
             compare_server_default=True,

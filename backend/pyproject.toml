@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "curestry-backend"
+version = "0.1.0"
+description = "AI-powered prompt analysis and improvement system"
+authors = [{name = "Curestry Team"}]
+requires-python = ">=3.11"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+extend-exclude = [
+    "migrations",
+    "alembic/versions",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".git",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "W191",  # indentation contains tabs
+    "B904",  # Allow raising exceptions without from e
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+"tests/*.py" = ["ARG"]    # Allow unused arguments in tests
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+# skip-string-normalization option removed in newer ruff versions
+line-ending = "auto"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["app"]
+known_third_party = ["fastapi", "pydantic", "sqlalchemy", "alembic"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "alembic.*",
+    "langgraph.*",
+    "langchain_core.*",
+    "sqlmodel.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]

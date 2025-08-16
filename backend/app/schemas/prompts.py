@@ -1,17 +1,18 @@
-from typing import List, Optional, Dict, Any, Literal
-from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional
+
+from pydantic import BaseModel, Field
 
 
 class PromptInput(BaseModel):
     """Input prompt for analysis."""
     content: str = Field(..., description="The prompt text to analyze")
     format_type: Literal["auto", "xml", "markdown"] = Field(
-        default="auto", 
+        default="auto",
         description="Expected format of the prompt"
     )
     language: Optional[str] = Field(
-        default=None, 
+        default=None,
         description="Language of the prompt (auto-detected if not provided)"
     )
     metadata: Optional[Dict[str, Any]] = Field(
@@ -33,7 +34,7 @@ class MetricScore(BaseModel):
 class SemanticEntropy(BaseModel):
     """Semantic entropy analysis results."""
     entropy: float = Field(..., description="Entropy score")
-    spread: float = Field(..., description="Response variation measure") 
+    spread: float = Field(..., description="Response variation measure")
     clusters: int = Field(..., description="Number of distinct response clusters")
     samples: List[str] = Field(..., description="Sample responses used for analysis")
 
@@ -76,31 +77,31 @@ class ClarifyAnswer(BaseModel):
 
 class MetricReport(BaseModel):
     """Comprehensive analysis report."""
-    
+
     # Basic info
     prompt_id: str = Field(..., description="Unique identifier for this analysis")
     original_prompt: str = Field(..., description="The original prompt text")
     analyzed_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     # Language and format
     detected_language: str = Field(..., description="Auto-detected language")
     translated: bool = Field(default=False, description="Whether prompt was translated")
     format_valid: bool = Field(..., description="Whether markup format is valid")
-    
+
     # Core metrics
     judge_score: MetricScore = Field(..., description="LLM-as-judge evaluation")
     semantic_entropy: SemanticEntropy = Field(..., description="Response consistency analysis")
     contradictions: List[Contradiction] = Field(default_factory=list)
-    
+
     # Additional metrics
     length_chars: int = Field(..., description="Character count")
     length_words: int = Field(..., description="Word count")
     complexity_score: float = Field(..., ge=0, le=10, description="Vocabulary complexity")
-    
+
     # Improvement suggestions
     patches: List[Patch] = Field(default_factory=list)
     clarify_questions: List[ClarifyQuestion] = Field(default_factory=list)
-    
+
     # Summary
     overall_score: float = Field(..., ge=0, le=10, description="Overall quality score")
     improvement_priority: Literal["low", "medium", "high"] = Field(

@@ -1,6 +1,7 @@
-from typing import Literal, List
-from openai import OpenAI
 import logging
+from typing import List, Literal
+
+from openai import OpenAI
 
 from app.core.config import settings
 
@@ -11,7 +12,7 @@ ModelTier = Literal["cheap", "standard", "premium"]
 
 class OpenAIService:
     """OpenAI service with tier-based model selection for cost optimization."""
-    
+
     def __init__(self):
         self.client = OpenAI(api_key=settings.openai_api_key)
         self.models = {
@@ -19,30 +20,34 @@ class OpenAIService:
             "standard": settings.openai_model_standard,
             "premium": settings.openai_model_premium,
         }
-    
+
     async def ask(self, model_tier: ModelTier, prompt: str, **kwargs) -> str:
         """
         Send a prompt to OpenAI using specified model tier.
-        
+
         Args:
             model_tier: Model tier to use (cheap/standard/premium)
             prompt: The prompt to send
             **kwargs: Additional parameters for OpenAI API
-            
+
         Returns:
             Response text from the model
         """
         model = self.models[model_tier]
-        
+
+        # Convert max_tokens to max_completion_tokens for gpt-5 models
+        if "max_tokens" in kwargs:
+            kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+
         try:
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
                 **kwargs
             )
-            
+
             result = response.choices[0].message.content
-            
+
             logger.info(
                 f"OpenAI request completed",
                 extra={
@@ -52,9 +57,9 @@ class OpenAIService:
                     "response_length": len(result) if result else 0,
                 }
             )
-            
+
             return result or ""
-            
+
         except Exception as e:
             logger.error(
                 f"OpenAI request failed: {str(e)}",
@@ -66,31 +71,32 @@ class OpenAIService:
                 }
             )
             raise
-    
+
     async def sample_for_entropy(self, prompt: str, n: int = None) -> List[str]:
         """
         Generate multiple responses for semantic entropy analysis.
         Uses cheap model for cost efficiency.
-        
+
         Args:
             prompt: The prompt to sample responses for
             n: Number of samples (defaults to settings.entropy_n)
-            
+
         Returns:
             List of response strings
         """
         n = n or settings.entropy_n
-        
+
         try:
             # Use cheap model for cost efficiency
+            # Note: max_completion_tokens conversion handled in ask() method
             response = self.client.chat.completions.create(
                 model=self.models["cheap"],
                 messages=[{"role": "user", "content": prompt}],
                 n=n  # Generate multiple responses in one request
             )
-            
+
             results = [choice.message.content or "" for choice in response.choices]
-            
+
             logger.info(
                 f"Entropy sampling completed",
                 extra={
@@ -100,9 +106,9 @@ class OpenAIService:
                     "avg_response_length": sum(len(r) for r in results) / len(results),
                 }
             )
-            
+
             return results
-            
+
         except Exception as e:
             logger.error(
                 f"Entropy sampling failed: {str(e)}",
@@ -113,15 +119,15 @@ class OpenAIService:
                 }
             )
             raise
-    
+
     async def judge_prompt(self, prompt: str, rubric: str = None) -> str:
         """
         Evaluate prompt quality using premium model for accuracy.
-        
+
         Args:
             prompt: The prompt to evaluate
             rubric: Evaluation rubric (optional)
-            
+
         Returns:
             JSON string with evaluation scores and rationale
         """
@@ -132,7 +138,7 @@ class OpenAIService:
         3. Completeness: Are all necessary details provided?
         4. Consistency: Are there any contradictions?
         5. Feasibility: Is the request achievable?
-        
+
         Return JSON format:
         {
             "clarity": <score>,
@@ -144,31 +150,31 @@ class OpenAIService:
             "rationale": "<brief explanation>"
         }
         """
-        
+
         evaluation_prompt = f"""
         {rubric or default_rubric}
-        
+
         Prompt to evaluate:
         {prompt}
         """
-        
+
         return await self.ask("premium", evaluation_prompt)
-    
+
     async def clarify_prompt(self, prompt: str) -> str:
         """
         Generate clarification questions for ambiguous prompts.
         Uses standard model for balanced cost/quality.
-        
+
         Args:
             prompt: The prompt that needs clarification
-            
+
         Returns:
             List of clarification questions
         """
         clarify_prompt = f"""
         Analyze this prompt and identify what information is missing or ambiguous.
         Generate 3-5 specific clarification questions that would help improve the prompt.
-        
+
         Return as JSON:
         {{
             "questions": [
@@ -180,11 +186,11 @@ class OpenAIService:
                 "No specific length requirements given"
             ]
         }}
-        
+
         Prompt to analyze:
         {prompt}
         """
-        
+
         return await self.ask("standard", clarify_prompt)
 
 

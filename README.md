@@ -50,9 +50,43 @@ dev help   # Show all commands
 ## Development
 
 - `dev up` - Start all services
-- `dev down` - Stop all services  
+- `dev down` - Stop all services
 - `dev logs` - View service logs
 - `dev ps` - Check container status
+
+## Run on a Server (Docker)
+
+Prerequisites:
+- Docker and Docker Compose installed
+- A copy of this repository on the server
+- A proper .env created on the server (do not commit secrets)
+
+Steps:
+1) Create .env on the server (from .env.example) and set at minimum:
+   - ENV=production
+   - LOG_LEVEL=INFO
+   - OPENAI_API_KEY=sk-...
+   - DATABASE_URL=postgresql+psycopg://curestry:secure_password@db:5432/curestry
+   - NEXT_PUBLIC_API_BASE=http://YOUR_SERVER_HOST_OR_IP:8000
+
+2) Open firewall ports 3000 (web) and 8000 (api) on the server as needed.
+
+3) Start the stack:
+   - cd infra
+   - docker compose up -d
+
+4) Verify health:
+   - API: http://YOUR_SERVER_HOST_OR_IP:8000/healthz
+   - Web: http://YOUR_SERVER_HOST_OR_IP:3000
+
+5) View logs / manage lifecycle:
+   - docker compose logs -f
+   - docker compose ps
+   - docker compose down
+
+Notes:
+- In production behind a reverse proxy, set NEXT_PUBLIC_API_BASE to the external API URL (e.g., https://your.domain/api) and proxy accordingly.
+- Postgres and Redis are internal to the Docker network and are not exposed publicly by default.
 
 ## License
 
