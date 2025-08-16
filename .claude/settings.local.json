@@ -45,7 +45,8 @@
     "additionalDirectories": [
       "C:\\c\\Users\\Administrator\\Desktop\\projects",
       "C:\\Users\\Administrator\\Desktop\\projects",
-      "C:\\c\\Users\\Administrator\\Desktop\\projects\\hackathon"
+      "C:\\c\\Users\\Administrator\\Desktop\\projects\\hackathon",
+      "C:\\mnt\\c\\Users\\Administrator\\Desktop\\projects\\hackathon"
     ]
   }
 }

@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ../.env
+      - .env
     environment:
       - ENV=${ENV:-development}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
@@ -36,9 +36,9 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - ../.env
+      - .env
     environment:
-      - NEXT_PUBLIC_API_BASE=http://localhost:8000
+      - NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
     volumes:
       - ../frontend:/app
       - /app/node_modules
