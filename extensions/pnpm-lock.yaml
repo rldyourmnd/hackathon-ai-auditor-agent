@@ -1,0 +1,83 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    devDependencies:
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
+
+  apps/browser-ext:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.2
+
+  apps/vscode-ext:
+    devDependencies:
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.123
+      '@types/vscode':
+        specifier: ^1.70.0
+        version: 1.103.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.2
+
+  packages/core:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.2
+
+  packages/messaging:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.2
+
+  packages/shared:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.2
+
+  packages/ui:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.2
+
+packages:
+
+  '@types/node@18.19.123':
+    resolution: {integrity: sha512-K7DIaHnh0mzVxreCR9qwgNxp3MH9dltPNIEddW9MYUlcKAzm+3grKNSTe2vCJHI1FaLpvpL5JGJrz1UZDKYvDg==}
+
+  '@types/vscode@1.103.0':
+    resolution: {integrity: sha512-o4hanZAQdNfsKecexq9L3eHICd0AAvdbLk6hA60UzGXbGH/q8b/9xv2RgR7vV3ZcHuyKVq7b37IGd/+gM4Tu+Q==}
+
+  typescript@5.9.2:
+    resolution: {integrity: sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  undici-types@5.26.5:
+    resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
+
+snapshots:
+
+  '@types/node@18.19.123':
+    dependencies:
+      undici-types: 5.26.5
+
+  '@types/vscode@1.103.0': {}
+
+  typescript@5.9.2: {}
+
+  undici-types@5.26.5: {}

@@ -1,12 +1,27 @@
 {
   "name": "ai-auditor-vscode",
   "version": "0.0.1",
-  "main": "src/extension.ts",
+  "publisher": "your-publisher",
+  "main": "out/extension.js",
   "engines": {
     "vscode": "^1.70.0"
   },
   "scripts": {
     "build": "tsc -p ."
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-auditor.analyze",
+        "title": "AI Auditor: Analyze"
+      }
+    ]
+  },
+  "activationEvents": ["onCommand:ai-auditor.analyze"],
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.70.0"
   }
 }
 

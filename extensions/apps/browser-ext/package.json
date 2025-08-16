@@ -1,0 +1,14 @@
+{
+  "name": "ai-auditor-browser-ext",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/background.js",
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
+
+
