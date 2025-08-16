@@ -24,7 +24,10 @@
       "Bash(pip install:*)",
       "Bash(pre-commit:*)",
       "Bash(./dev.bat help)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
