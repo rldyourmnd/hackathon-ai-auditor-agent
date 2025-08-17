@@ -51,7 +51,12 @@
       "Bash(robocopy:*)",
       "Bash(dir:*)",
       "Bash(git fetch:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(ssh-keygen:*)",
+      "Bash(ssh-copy-id:*)",
+      "Bash(ssh:*)",
+      "Bash(git rm:*)",
+      "Bash(git reset:*)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
