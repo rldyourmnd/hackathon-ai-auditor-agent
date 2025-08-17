@@ -1,0 +1,69 @@
+---
+description: "Extensions architecture, workflow, security, and dev flow for browser + VS Code clients. Enforces shared core logic, vertical slices, and consistent UX."
+alwaysApply: true
+globs:
+  - "extensions/**"
+  - "docs/extensions/**/*.md"
+  - ".cursor/rules/*.mdc"
+  - "Makefile"
+  - ".pre-commit-config.yaml"
+  - "tracking/*.md"
+---
+
+# Extensions Core Rule
+
+## 1. Scope and Context
+- Single monorepo, one codebase → two clients (browser MV3, VS Code).
+- Shared logic in `core/`, shared UI in `ui/`; clients stay thin.
+- Always follow patterns fixed in project PDF and confirmed by Lakera, Prompt Enhancer, Cursor Stats.
+
+## 2. Workflow (End-to-End Vertical Slices)
+- **Path:** (a) capture text → (b) send to core analysis → (c) return unified report.
+- First priority: Browser extension (ChatGPT/Claude/Perplexity).  
+- Next: VS Code extension (command → core → React webview).  
+- Message passing:  
+  - Browser: `content ↔ background ↔ core ↔ popup/sidepanel`.  
+  - VS Code: `extension ↔ core ↔ webview`.
+
+## 3. Analytics (MVP Baseline)
+- Start with local detectors (regex, heuristics), length limits.  
+- Optional LLM-as-judge behind toggle.  
+- Unit tests for detectors/limits (Lakera pattern).
+
+## 4. UX & i18n
+- Browser: popup/sidepanel (React + Tailwind + shadcn/ui).  
+- VS Code: Command Palette + status bar; results in React webview.  
+- i18n: JSON key dictionaries, language switching, friendly errors.  
+- Patterns verified in Cursor Stats.
+
+## 5. Security & Storage
+- Browser: `chrome.storage.local`/`sync` (minimal).  
+- VS Code: Configuration API + SecretStorage/Memento.  
+- Follow Lakera/Prompt Enhancer practices.
+
+## 6. Permissions & Safety
+- Minimize `host_permissions`, explicitly list `matches`.  
+- Keep local-first analysis; no external calls unless explicit.
+
+## 7. Dev Flow
+- Language: TypeScript.  
+- Build: Vite (for popup/sidepanel/webview).  
+- Monorepo: pnpm + Turborepo/Nx inside `/extensions`.  
+- Testing: Jest/unit tests for detectors, limits.  
+- Local runs:  
+  - Chrome: `chrome://extensions → Load unpacked`.  
+  - VS Code: activate commands / install VSIX.
+
+## 8. Guardrails
+- Shared UI must look identical across browser + VS Code.  
+- One logic block per file.  
+- All new logic must have test + doc + anchor.  
+- No undocumented features.  
+- Docs (README, changelog, install guides) updated with code.
+
+## 9. References
+- Project PDF (stack + flows)  
+- Lakera examples (local detectors, MutationObserver, tests)  
+- Prompt Enhancer (permissions, storage)  
+- Cursor Stats (commands, UX, i18n)
+

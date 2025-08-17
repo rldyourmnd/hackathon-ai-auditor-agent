@@ -1,0 +1,15 @@
+{
+  "name": "extensions-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "bootstrap": "pnpm install",
+    "build": "pnpm -w -r run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
