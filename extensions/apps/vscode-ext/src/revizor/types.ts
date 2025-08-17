@@ -1,4 +1,4 @@
-export type GrabMethod = 'uia' | 'simCopy' | 'interactiveCopy';
+export type GrabMethod = 'uia' | 'simCopy' | 'interactiveCopy' | 'clipboard';
 
 export interface GrabResult {
 	ok: boolean;

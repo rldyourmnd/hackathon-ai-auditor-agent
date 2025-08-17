@@ -39,7 +39,17 @@
       "Bash(export OPENAI_MODEL_PREMIUM=gpt-4o)",
       "Bash(echo:*)",
       "Bash(cat:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(node:*)",
+      "Bash(dir)",
+      "Bash(powershell:*)",
+      "Bash(copy:*)",
+      "Bash(npm run pack:*)",
+      "Bash(npm run:*)",
+      "Bash(npx vsce:*)",
+      "Bash(xcopy:*)",
+      "Bash(robocopy:*)",
+      "Bash(dir:*)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [

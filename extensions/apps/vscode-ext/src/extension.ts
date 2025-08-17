@@ -65,6 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const overlay = new OverlayController(() => vscode.commands.executeCommand('cursorAudit.analyzeAndSend'));
   try { overlay.show(); } catch (e: any) { auditorOutput.appendLine(`Overlay show failed: ${e?.message || e}`); }
+  context.subscriptions.push({ dispose: () => overlay.dispose() });
 
   const disposable = vscode.commands.registerCommand('ai-auditor.analyze', async () => {
     const editor = vscode.window.activeTextEditor;
@@ -107,19 +108,41 @@ export function activate(context: vscode.ExtensionContext) {
   const findingsByFile = new Map<string, any[]>();
   let lastGrab: { result: any, revised: string } | null = null;
 
-  // Try to load core analyzer if available; fall back to simple local analysis
+  // Analyze text using helper server or fallback to local heuristics
   async function analyzeText(text: string): Promise<{ revisedText: string; findings: Array<{ kind: string; message: string }> }> {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const core: any = require('@extensions/core');
-      if (core && typeof core.runPromptAudit === 'function') {
-        const analysis = core.runPromptAudit(text);
-        const revisedText = String(text).replace(/\s+$/gm, '').trim();
-        const findings = (analysis?.findings || []).map((f: any) => ({ kind: String(f.id || 'finding'), message: String(f.message || '') }));
-        return { revisedText, findings };
+    // Try helper server first
+    const baseUrl = helper.baseUrl;
+    if (baseUrl) {
+      try {
+        auditorOutput.appendLine(`Analyzing text via helper server: ${baseUrl}/analyze`);
+        const response = await fetch(`${baseUrl}/analyze`, { 
+          method: 'POST', 
+          headers: { 'content-type': 'application/json' }, 
+          body: JSON.stringify({ text }) 
+        });
+        
+        if (response.ok) {
+          const result: any = await response.json();
+          auditorOutput.appendLine(`Helper server analysis successful. Findings: ${result.findings?.length || 0}`);
+          return { 
+            revisedText: result.revised || text.replace(/\s+$/gm, '').trim(),
+            findings: (result.findings || []).map((f: any) => ({ 
+              kind: String(f.kind || 'finding'), 
+              message: String(f.message || '') 
+            }))
+          };
+        } else {
+          auditorOutput.appendLine(`Helper server error: ${response.status} ${response.statusText}`);
+        }
+      } catch (e: any) {
+        auditorOutput.appendLine(`Helper server fetch failed: ${e?.message || e}`);
       }
-    } catch {}
+    } else {
+      auditorOutput.appendLine('No helper server available for analysis');
+    }
+
     // Fallback: simple local heuristics
+    auditorOutput.appendLine('Using fallback local analysis');
     const findings = [] as Array<{ kind: string; message: string }>;
     if (text.length > 4000) findings.push({ kind: 'length', message: 'Text is quite long; consider shortening.' });
     if (/password|api[_\- ]?key/i.test(text)) findings.push({ kind: 'pii', message: 'Potential secret-like token detected.' });
@@ -226,25 +249,40 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   context.subscriptions.push(vscode.commands.registerCommand('revizor.grabNow', async () => {
+    auditorOutput.appendLine('=== Manual Grab Command ===');
     const res = await grabNow();
+    auditorOutput.appendLine(`Grab result: ok=${res.ok}, method=${res.method}, textLength=${res.text?.length || 0}`);
+    
+    // Update overlay status
+    overlay.updateGrabStatus(res.ok, res.text?.length || 0);
+    
     diag.show(res);
     if (!res.ok || !res.text) {
-      vscode.window.showWarningMessage(res.message || 'Revizor: No text captured. Ensure focus and permissions.');
+      const errorMsg = res.message || 'No text captured. Make sure you have text in the Cursor AI input field.';
+      auditorOutput.appendLine(`Grab failed: ${errorMsg}`);
+      // Show a gentle notification instead of warning
+      vscode.window.showInformationMessage(`AI Auditor: ${errorMsg}`);
       return;
     }
-    // simple mock analysis
-    const findings = [] as Array<{kind:string; message:string}>;
-    if (res.text.length > 4000) findings.push({ kind: 'length', message: 'Text is quite long; consider shortening.' });
-    if (/password|api[_\- ]?key/i.test(res.text)) findings.push({ kind: 'pii', message: 'Potential secret-like token detected.' });
-    const revised = res.text.replace(/\s+$/gm, '').trim();
+    
+    auditorOutput.appendLine(`Successfully grabbed: "${res.text.substring(0, 100)}${res.text.length > 100 ? '...' : ''}"`);
+    
+    // Analyze the grabbed text
+    const analysis = await analyzeText(res.text);
+    const findings = analysis.findings;
+    const revised = analysis.revisedText;
+    
     lastGrab = { result: res, revised };
     const showPreview = vscode.workspace.getConfiguration().get<boolean>('revizor.ui.showPreview', true);
+    
     if (showPreview) {
+      auditorOutput.appendLine('Showing preview with analysis results');
       preview.show(res.text, { revisedText: revised, findings }, async (rev) => {
         lastGrab = { result: res, revised: rev };
         await vscode.commands.executeCommand('revizor.applyRevised');
       });
     } else {
+      auditorOutput.appendLine('Auto-applying revised text');
       await vscode.commands.executeCommand('revizor.applyRevised');
     }
   }));
@@ -495,33 +533,60 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Analyze & Send commands
   async function runAnalyzeAndMaybeSend(doSend: boolean) {
+    auditorOutput.appendLine(`=== Starting ${doSend ? 'Analyze & Send' : 'Analyze'} ===`);
+    
     const res = await grabNow();
+    auditorOutput.appendLine(`Grab result: ok=${res.ok}, method=${res.method}, textLength=${res.text?.length || 0}, platform=${res.platform}`);
+    if (res.message) auditorOutput.appendLine(`Grab message: ${res.message}`);
+    
+    // Update overlay status
+    overlay.updateGrabStatus(res.ok, res.text?.length || 0);
+    
     diag.show(res);
     if (!res.ok || !res.text) {
-      vscode.window.showWarningMessage(res.message || 'Revizor: No text captured. Ensure focus and permissions.');
+      const errorMsg = res.message || 'No text found in clipboard. Please select and copy text (Ctrl+C) first, then click Grab Cursor.';
+      auditorOutput.appendLine(`Grab failed: ${errorMsg}`);
+      // Show a gentle notification instead of warning  
+      vscode.window.showInformationMessage(`AI Auditor: ${errorMsg}`);
       return;
     }
+    
+    auditorOutput.appendLine(`Captured text preview: "${res.text.substring(0, 100)}${res.text.length > 100 ? '...' : ''}"`);
+    
     const analysis = await analyzeText(res.text);
+    auditorOutput.appendLine(`Analysis complete: ${analysis.findings.length} findings`);
+    
     const revised = analysis.revisedText;
     const showPreview = vscode.workspace.getConfiguration().get<boolean>('revizor.ui.showPreview', true);
+    
     if (showPreview) {
+      auditorOutput.appendLine('Showing preview panel');
       const findings = analysis.findings.map(f => ({ kind: f.kind, message: f.message }));
       preview.show(res.text, { revisedText: revised, findings }, async (rev) => {
+        auditorOutput.appendLine(`Applying revised text: ${rev.length} chars`);
         await vscode.env.clipboard.writeText(rev);
         try {
           await applySimPasteFromClipboard();
           if (doSend) await applySimSend();
-        } catch {
+          auditorOutput.appendLine(`Successfully ${doSend ? 'pasted and sent' : 'pasted'}`);
+          vscode.window.showInformationMessage(`Successfully ${doSend ? 'analyzed and sent' : 'analyzed'} prompt!`);
+        } catch (e: any) {
+          auditorOutput.appendLine(`Paste/send failed: ${e?.message || e}`);
           vscode.window.showInformationMessage('Revised text copied. Paste (and press Enter) manually.');
         }
       });
       return;
     }
+    
+    auditorOutput.appendLine('Applying without preview');
     await vscode.env.clipboard.writeText(revised);
     try {
       await applySimPasteFromClipboard();
       if (doSend) await applySimSend();
-    } catch {
+      auditorOutput.appendLine(`Successfully ${doSend ? 'pasted and sent' : 'pasted'}`);
+      vscode.window.showInformationMessage(`Successfully ${doSend ? 'analyzed and sent' : 'analyzed'} prompt!`);
+    } catch (e: any) {
+      auditorOutput.appendLine(`Paste/send failed: ${e?.message || e}`);
       vscode.window.showInformationMessage('Revised text copied. Paste (and press Enter) manually.');
     }
   }
@@ -655,7 +720,9 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.languages.registerCodeActionsProvider({ scheme: 'file' }, new AuditorCodeActionProvider(), { providedCodeActionKinds: AuditorCodeActionProvider.providedCodeActionKinds }));
 }
 
-export function deactivate() {}
+export function deactivate() {
+  // Cleanup handled by context.subscriptions
+}
 
 
 
