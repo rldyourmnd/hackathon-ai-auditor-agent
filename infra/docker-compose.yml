@@ -46,6 +46,23 @@ services:
     depends_on:
       - api
 
+  web-admin:
+    build:
+      context: ../frontend-admin
+      dockerfile: ../infra/Dockerfile.web-admin
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env
+    environment:
+      - NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
+    volumes:
+      - ../frontend-admin:/app
+      - /app/node_modules
+    command: npm run dev
+    depends_on:
+      - api
+
   db:
     image: postgres:15-alpine
     # ports:
