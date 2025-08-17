@@ -113,6 +113,26 @@ services:
       timeout: 10s
       retries: 3
 
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/generate-ssl.sh:/etc/nginx/generate-ssl.sh:ro
+    depends_on:
+      - public
+      - web
+    command: |
+      sh -c "
+      if [ ! -f /etc/nginx/ssl/nginx.crt ]; then
+        sh /etc/nginx/generate-ssl.sh;
+      fi;
+      nginx -g 'daemon off;'
+      "
+
 volumes:
   postgres_data:
   redis_data:
