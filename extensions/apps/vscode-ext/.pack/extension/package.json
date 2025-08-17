@@ -104,16 +104,7 @@
     }
   },
   "activationEvents": [
-    "onCommand:ai-auditor.analyze",
-    "onCommand:cursorAudit.analyzeCurrentDraft",
-    "onCommand:cursorAudit.analyzeAndSend",
-    "onCommand:revizor.grabNow",
-    "onCommand:revizor.applyRevised",
-    "onCommand:revizor.diagnostics.open",
-    "onCommand:auditor.analyzeWorkspace",
-    "onCommand:auditor.revisePrompt",
-    "onCommand:auditor.openFindings",
-    "onCommand:auditor.cancelAnalysis"
+    "onStartupFinished"
   ],
   "devDependencies": {
     "typescript": "^5.0.0",
