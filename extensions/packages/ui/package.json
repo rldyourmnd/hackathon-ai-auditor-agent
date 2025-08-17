@@ -4,6 +4,9 @@
   "main": "src/index.ts",
   "type": "module",
   "license": "MIT",
+  "dependencies": {
+    "@extensions/shared": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5.0.0"
   }

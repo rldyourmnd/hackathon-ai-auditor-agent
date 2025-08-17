@@ -1,6 +1,7 @@
 import { uuidv4 } from './internal/uuidv4.js';
 import { buildHeaders, mergeHeaders } from './internal/headers.js';
 import { backoffDelayMs, shouldRetry } from './internal/retry.js';
+import type { BrowserAnalysisRequest, BrowserAnalysisResult } from '@extensions/shared';
 
 export type Severity = 'low' | 'medium' | 'high';
 
@@ -237,6 +238,27 @@ export function createClient(config: ClientConfig) {
       schemaVersion: 1,
     }, opts) as Promise<ReviseResponse>,
     cancel: (_token: unknown) => { /* token-based cancel could be wired later */ },
+  };
+}
+
+// Convenience wrapper that conforms to browser extension UI contracts
+export function createBrowserApiClient(config: Omit<ClientConfig, 'transport'> & { localAnalyzer?: LocalAnalyzer }) {
+  const transport = config.localAnalyzer ? offlineTransport(config.localAnalyzer) : restTransport(config.fetchLike ?? fetch.bind(globalThis));
+  const internal = createClient({ ...config, transport: 'rest' });
+  return {
+    async analyzeBrowser(req: BrowserAnalysisRequest, opts?: CallOptions): Promise<BrowserAnalysisResult> {
+      try {
+        const coreReq: AnalyzeRequest = { text: req.text };
+        const coreRes = await internal.analyze(coreReq, opts);
+        const findings = (coreRes.findings ?? []).map(f => ({
+          severity: (f.severity === 'high' ? 'error' : f.severity === 'medium' ? 'warn' : 'info') as any,
+          message: f.message,
+        }));
+        return { ok: true, findings };
+      } catch (e: any) {
+        return { ok: false, error: String(e?.message || e) } as const;
+      }
+    }
   };
 }
 

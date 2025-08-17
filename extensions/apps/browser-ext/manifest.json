@@ -1,19 +1,34 @@
 {
   "manifest_version": 3,
-  "name": "AI Auditor (dev)",
-  "version": "0.0.1",
-  "action": {
-    "default_title": "AI Auditor"
-  },
-  "permissions": [],
-  "background": { "service_worker": "dist/background.js" },
+  "name": "AI Auditor (Mock) — ChatGPT",
+  "version": "0.1.0",
+  "action": { "default_popup": "public/popup.html" },
+  "options_page": "public/options.html",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["dist/content.js"],
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": ["dist/src/content.js"],
+      "css": ["public/styles.css"],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "background": { "service_worker": "dist/src/background.js", "type": "module" },
+  "commands": {
+    "run-audit": {
+      "suggested_key": {
+        "default": "Alt+A"
+      },
+      "description": "Run AI audit"
+    }
+  }
 }
 
 
