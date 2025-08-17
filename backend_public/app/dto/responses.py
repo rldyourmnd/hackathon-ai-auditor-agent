@@ -102,3 +102,73 @@ class HealthResponse(BaseModel):
     timestamp: str
     version: str
     checks: Dict[str, Any]
+
+
+# Export and Admin DTOs
+
+class ExportResponse(BaseModel):
+    analysis_id: str
+    prompt: Dict[str, Any]
+    report: Dict[str, Any]
+    patches: List[Dict[str, Any]]
+    questions: List[Dict[str, Any]]
+    created_at: str
+    processing_time_ms: int
+    pipeline_version: Optional[str]
+
+
+class AdminAnalysisItem(BaseModel):
+    id: str
+    prompt_id: str | None
+    overall_score: float
+    risk_level: RiskLevel
+    created_at: datetime
+    processing_time_ms: int
+
+
+class AdminAnalysisListResponse(BaseModel):
+    total: int
+    items: List[AdminAnalysisItem]
+
+
+class TimeSeriesPoint(BaseModel):
+    timestamp: datetime
+    count: int
+    avg_score: Optional[float] = None
+
+
+class TimeSeriesResponse(BaseModel):
+    window: str
+    points: List[TimeSeriesPoint]
+
+
+class ModelStats(BaseModel):
+    name: str
+    invocations: int
+    avg_latency_ms: Optional[float] = None
+    last_used_at: Optional[datetime] = None
+
+
+class ModelsResponse(BaseModel):
+    models: List[ModelStats]
+
+
+class ApiKeyInfo(BaseModel):
+    id: str
+    name: str
+    prefix: str
+    masked: str
+    active: bool
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+    scopes: List[str] = Field(default_factory=list)
+
+
+class ApiKeyCreateResponse(BaseModel):
+    id: str
+    name: str
+    token: str
+    prefix: str
+    masked: str
+    created_at: datetime
+    scopes: List[str] = Field(default_factory=list)

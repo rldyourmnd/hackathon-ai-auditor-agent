@@ -11,6 +11,7 @@ from .middleware.logging import logging_middleware, request_id_middleware  # typ
 # Routers
 from .api.health import router as health_router  # type: ignore
 from .api.analysis import router as analysis_router  # type: ignore
+from .api.admin import router as admin_router  # type: ignore
 
 # Keep existing routers to avoid breaking functionality while migrating
 from .routers import spec_proxy as proxy_router
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     # New routers per guidelines
     app.include_router(health_router)
     app.include_router(analysis_router, prefix="/api")
+    app.include_router(admin_router)
 
     # Preserve existing feature-flagged routers
     if settings.feature_proxy:

@@ -11,7 +11,8 @@ from sqlmodel import SQLModel
 
 # Import settings and models to populate metadata
 from app.config import settings
-from app.orm import models  # noqa: F401
+from app.orm import models as orm_models  # noqa: F401
+from app import models as core_models  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

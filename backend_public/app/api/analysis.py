@@ -15,6 +15,7 @@ from ..dto.responses import (
     SemanticEntropy,
     Patch,
     ClarifyQuestion,
+    ExportResponse,
 )
 from ..dto.common import RiskLevel
 from ..orm.models import Prompt, AnalysisResult, EventType
@@ -217,7 +218,7 @@ async def get_analysis(analysis_id: str, session: AsyncSession = Depends(get_asy
     )
 
 
-@router.get("/export")
+@router.get("/export", response_model=ExportResponse)
 async def export_analysis(analysis_id: str, session: AsyncSession = Depends(get_async_session)):
     """Export full analysis (prompt, report, patches, questions) as JSON."""
     result = await session.execute(

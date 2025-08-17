@@ -110,3 +110,27 @@ class EvaluationMetric(SQLModel, table=True):
         Index("idx_evaluation_metrics_run_metric", "run_id", "metric_name"),
     )
 
+
+# ------------------------------------------------------------
+# API Keys
+# ------------------------------------------------------------
+
+
+class ApiKey(SQLModel, table=True):
+    __tablename__ = "api_keys"
+
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex, primary_key=True)
+    name: str = Field(description="Display name for the key")
+    prefix: str = Field(index=True, description="Short prefix for identification, e.g., ak_1234")
+    hashed_token: str = Field(description="SHA-256 hash of the full token")
+    active: bool = Field(default=True)
+    scopes: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    user_id: Optional[str] = Field(default=None, foreign_key="users.id", index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_used_at: Optional[datetime] = Field(default=None)
+
+    __table_args__ = (
+        UniqueConstraint("prefix", name="uq_api_keys_prefix"),
+        Index("idx_api_keys_user_id", "user_id"),
+    )
+
