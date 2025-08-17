@@ -50,6 +50,8 @@ if (Test-Path $packDir) { Remove-Item -Recurse -Force $packDir }
 New-Item -ItemType Directory -Path $packDir | Out-Null
 
 Copy-Item -Recurse -Force (Join-Path $extDir 'out') (Join-Path $packDir 'out')
+Copy-Item -Recurse -Force (Join-Path $extDir 'scripts') (Join-Path $packDir 'scripts')
+if (Test-Path (Join-Path $extDir 'helper')) { Copy-Item -Recurse -Force (Join-Path $extDir 'helper') (Join-Path $packDir 'helper') }
 Copy-Item -Force (Join-Path $extDir 'package.json') (Join-Path $packDir 'package.json')
 
 $readmePath  = Join-Path $packDir 'README.md'
@@ -80,7 +82,7 @@ if (-not $NoInstall) {
         code --install-extension $vsix.FullName | Out-Null
         Write-Info 'Installed successfully. Restart VS Code if needed.'
     } catch {
-        Write-Warn 'VS Code CLI (code) not found in PATH. Install manually via VS Code: Extensions → Install from VSIX...'
+        Write-Warn "VS Code CLI (code) not found in PATH. Install manually via VS Code: Extensions -> Install from VSIX..."
     }
 } else {
     Write-Info 'Skipping installation (NoInstall switch).'

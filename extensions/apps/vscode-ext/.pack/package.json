@@ -1,6 +1,7 @@
 {
   "name": "ai-auditor-vscode",
-  "version": "0.0.1",
+  "description": "Analyze and suggest improvements to selected text using local or remote helpers.",
+  "version": "0.1.1",
   "publisher": "your-publisher",
   "main": "out/extension.js",
   "engines": {
@@ -14,10 +15,106 @@
       {
         "command": "ai-auditor.analyze",
         "title": "AI Auditor: Analyze"
+      },
+      {
+        "command": "cursorAudit.analyzeCurrentDraft",
+        "title": "Analyze Draft"
+      },
+      {
+        "command": "cursorAudit.analyzeAndSend",
+        "title": "Analyze Draft & Send"
+      },
+      {
+        "command": "revizor.grabNow",
+        "title": "Revizor: Grab Chat Draft"
+      },
+      {
+        "command": "revizor.applyRevised",
+        "title": "Revizor: Apply Revised Text"
+      },
+      {
+        "command": "revizor.diagnostics.open",
+        "title": "Revizor: Open Diagnostics"
+      },
+      {
+        "command": "auditor.analyzeWorkspace",
+        "title": "Auditor: Analyze Workspace Prompts & Docs"
+      },
+      {
+        "command": "auditor.revisePrompt",
+        "title": "Auditor: Revise Prompt"
+      },
+      {
+        "command": "auditor.openFindings",
+        "title": "Auditor: Open Findings"
+      },
+      {
+        "command": "auditor.cancelAnalysis",
+        "title": "Auditor: Cancel Analysis"
       }
-    ]
+    ],
+    "keybindings": [
+      {
+        "command": "revizor.grabNow",
+        "key": "ctrl+alt+g",
+        "mac": "cmd+alt+g",
+        "when": "editorTextFocus || !editorFocus"
+      },
+      {
+        "command": "cursorAudit.analyzeAndSend",
+        "key": "ctrl+enter",
+        "when": "editorTextFocus || focusedView =~ /^workbench\\.panel\\.aichat\\.view/"
+      }
+    ],
+    "configuration": {
+      "title": "Revizor",
+      "properties": {
+        "revizor.methods.enabled": {
+          "type": "array",
+          "default": ["uia", "simCopy", "interactiveCopy"],
+          "description": "Ordered list of capture methods to try."
+        },
+        "revizor.privacy.noClipboard": {
+          "type": "boolean",
+          "default": false,
+          "description": "Do not use system clipboard (disables simCopy/interactiveCopy)."
+        },
+        "revizor.ui.showPreview": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show preview webview before applying revised text."
+        },
+        "revizor.keys.grab": {
+          "type": "string",
+          "default": "ctrl+alt+g",
+          "description": "Default keybinding for Grab Chat Draft (overridden by keybindings)."
+        },
+        "cursorAudit.sendHotkey": {
+          "type": "string",
+          "default": "ctrl+enter",
+          "description": "Hotkey used to trigger Analyze & Send."
+        },
+        "cursorAudit.osMethod": {
+          "type": "string",
+          "enum": ["auto","uia","applescript","xdotool"],
+          "default": "auto",
+          "description": "Preferred OS method for paste/send."
+        }
+      }
+    }
   },
-  "activationEvents": ["onCommand:ai-auditor.analyze"],
+  "activationEvents": [
+    "onCommand:ai-auditor.analyze",
+    "onCommand:cursorAudit.analyzeCurrentDraft",
+    "onCommand:cursorAudit.analyzeAndSend",
+    "onCommand:revizor.grabNow",
+    "onCommand:revizor.applyRevised",
+    "onCommand:revizor.diagnostics.open",
+    "onCommand:auditor.analyzeWorkspace",
+    "onCommand:auditor.revisePrompt",
+    "onCommand:auditor.openFindings",
+    "onCommand:auditor.cancelAnalysis"
+  ],
   "devDependencies": {
     "typescript": "^5.0.0",
     "@types/node": "^18.0.0",
@@ -25,7 +122,9 @@
   },
   "files": [
     "out/**/*",
-    "package.json"
+    "package.json",
+    "scripts/**/*",
+    "helper/**/*"
   ]
 }
 
