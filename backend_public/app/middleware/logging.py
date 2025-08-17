@@ -4,6 +4,7 @@ import json
 import logging
 from typing import Callable
 from fastapi import Request, Response
+from ..observability import inc_http_request
 
 
 async def request_id_middleware(request: Request, call_next: Callable) -> Response:
@@ -28,4 +29,9 @@ async def logging_middleware(request: Request, call_next: Callable) -> Response:
         "request_id": getattr(request.state, "request_id", None),
     }
     logging.getLogger("access").info(json.dumps(log, ensure_ascii=False))
+    try:
+        inc_http_request(request.method, response.status_code)
+    except Exception:
+        # Observability should never break request flow
+        pass
     return response

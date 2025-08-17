@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from ..dto.common import ErrorResponse
+from ..domain.exceptions import NotFoundError, ValidationDomainError, PipelineDomainError, DomainError
 from ..infra.pipeline_client import PipelineError, PipelineTimeoutError, PipelineHTTPError
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,45 @@ async def error_handling_middleware(request: Request, call_next):
                 path=str(request.url.path),
                 request_id=request_id,
                 details={"retry_after": "1-2 minutes"},
+            ).model_dump(),
+        )
+
+    except NotFoundError as e:
+        logger.warning("Domain not found [%s]: %s", request_id, e)
+        return JSONResponse(
+            status_code=404,
+            content=ErrorResponse(
+                message=str(e) or "Resource not found",
+                error_code="NOT_FOUND",
+                timestamp=datetime.utcnow(),
+                path=str(request.url.path),
+                request_id=request_id,
+            ).model_dump(),
+        )
+
+    except ValidationDomainError as e:
+        logger.warning("Domain validation error [%s]: %s", request_id, e)
+        return JSONResponse(
+            status_code=422,
+            content=ErrorResponse(
+                message=str(e) or "Validation failed",
+                error_code="DOMAIN_VALIDATION_ERROR",
+                timestamp=datetime.utcnow(),
+                path=str(request.url.path),
+                request_id=request_id,
+            ).model_dump(),
+        )
+
+    except PipelineDomainError as e:
+        logger.error("Domain pipeline error [%s]: %s", request_id, e)
+        return JSONResponse(
+            status_code=502,
+            content=ErrorResponse(
+                message=str(e) or "Pipeline error",
+                error_code="PIPELINE_ERROR",
+                timestamp=datetime.utcnow(),
+                path=str(request.url.path),
+                request_id=request_id,
             ).model_dump(),
         )
 

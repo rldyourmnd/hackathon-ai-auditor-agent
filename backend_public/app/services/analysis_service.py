@@ -5,11 +5,12 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from ..orm.models import Prompt, AnalysisResult, EventType
 from ..infra.pipeline_client import PipelineClient
-from ..infra.event_logger import EventLogger
+from ..integration.promptbase_adapter import build_analyze_payload
+from ..orm.repositories import PromptRepository, AnalysisRepository, EventRepository
+from ..domain.exceptions import NotFoundError, PipelineDomainError, DomainError
 from ..dto.requests import AnalyzeRequest, ClarifyRequest, ApplyRequest
 from ..dto.responses import (
     AnalyzeResponse,
@@ -27,10 +28,22 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisService:
-    def __init__(self, session: AsyncSession, pipeline_client: PipelineClient, event_logger: EventLogger):
+    def __init__(
+        self,
+        session: AsyncSession,
+        pipeline_client: PipelineClient,
+        event_logger: object | None = None,
+        *,
+        prompt_repo: PromptRepository | None = None,
+        analysis_repo: AnalysisRepository | None = None,
+        event_repo: EventRepository | None = None,
+    ):
         self.session = session
         self.pipeline = pipeline_client
-        self.events = event_logger
+        # Prefer injected repositories; otherwise build from session (BC with existing API code)
+        self.prompt_repo = prompt_repo or PromptRepository(session)
+        self.analysis_repo = analysis_repo or AnalysisRepository(session)
+        self.event_repo = event_repo or EventRepository(session)
 
     async def analyze_prompt(self, request: AnalyzeRequest) -> Result[AnalyzeResponse]:
         start_time = datetime.utcnow()
@@ -45,12 +58,10 @@ class AnalysisService:
             client_version=request.client_info.version if request.client_info else None,
             client_metadata=request.client_info.metadata if request.client_info else None,
         )
-        self.session.add(prompt)
-        await self.session.commit()
-        await self.session.refresh(prompt)
+        prompt = await self.prompt_repo.add(prompt)
 
         # 2. Log analysis started
-        await self.events.log_event(
+        await self.event_repo.log(
             event_type=EventType.ANALYZE_STARTED,
             prompt_id=prompt.id,
             event_data={
@@ -61,12 +72,9 @@ class AnalysisService:
         )
 
         try:
-            # 3. Call pipeline service
-            pipeline_response = await self.pipeline.analyze(
-                prompt=request.prompt.content,
-                format_type=request.prompt.format_type,
-                language=request.prompt.language,
-            )
+            # 3. Call pipeline service with deeper prompt-base context
+            enriched_payload = build_analyze_payload(request)
+            pipeline_response = await self.pipeline.analyze_with_context(enriched_payload)
 
             processing_time = (datetime.utcnow() - start_time).total_seconds() * 1000
 
@@ -96,12 +104,10 @@ class AnalysisService:
             prompt.detected_language = report.get("detected_language")
             prompt.translated = report.get("translated", False)
 
-            self.session.add(analysis)
-            await self.session.commit()
-            await self.session.refresh(analysis)
+            analysis = await self.analysis_repo.add(analysis)
 
             # 5. Log success
-            await self.events.log_event(
+            await self.event_repo.log(
                 event_type=EventType.ANALYZE_COMPLETED,
                 analysis_id=analysis.id,
                 prompt_id=prompt.id,
@@ -130,7 +136,7 @@ class AnalysisService:
             return Result.ok(response)
         except Exception as e:
             # Log failure
-            await self.events.log_event(
+            await self.event_repo.log(
                 event_type=EventType.ANALYZE_FAILED,
                 prompt_id=prompt.id,
                 event_data={"error": str(e), "error_type": type(e).__name__},
@@ -140,14 +146,13 @@ class AnalysisService:
 
     async def clarify(self, request: ClarifyRequest) -> Result[ClarifyResponse]:
         # Load existing analysis
-        res = await self.session.execute(select(AnalysisResult).where(AnalysisResult.id == request.analysis_id))
-        analysis = res.scalar_one_or_none()
+        analysis = await self.analysis_repo.get(request.analysis_id)
         if not analysis:
             return Result.fail("analysis not found", "NOT_FOUND")
 
         payload_answers = [{"id": a.question_id, "answer": a.answer} for a in request.answers]
         start = datetime.utcnow()
-        await self.events.log_event(
+        await self.event_repo.log(
             EventType.CLARIFY_REQUESTED,
             analysis_id=request.analysis_id,
             prompt_id=analysis.prompt_id,
@@ -157,7 +162,7 @@ class AnalysisService:
         try:
             result = await self.pipeline.clarify(analysis_id=request.analysis_id, answers=payload_answers)
         except Exception as e:
-            await self.events.log_event(
+            await self.event_repo.log(
                 EventType.ANALYZE_FAILED,
                 analysis_id=request.analysis_id,
                 prompt_id=analysis.prompt_id,
@@ -184,10 +189,10 @@ class AnalysisService:
             existing = analysis.patches or []
             analysis.patches = existing + result["new_patches"]
         analysis.updated_at = datetime.utcnow()
-        await self.session.commit()
+        await self.analysis_repo.update(analysis)
 
         processing_ms = int((datetime.utcnow() - start).total_seconds() * 1000)
-        await self.events.log_event(
+        await self.event_repo.log(
             EventType.CLARIFY_COMPLETED,
             analysis_id=analysis.id,
             prompt_id=analysis.prompt_id,
@@ -220,19 +225,17 @@ class AnalysisService:
         )
 
     async def apply(self, request: ApplyRequest) -> Result[ApplyResponse]:
-        res = await self.session.execute(select(AnalysisResult).where(AnalysisResult.id == request.analysis_id))
-        analysis = res.scalar_one_or_none()
+        analysis = await self.analysis_repo.get(request.analysis_id)
         if not analysis:
             return Result.fail("analysis not found", "NOT_FOUND")
 
-        res_p = await self.session.execute(select(Prompt).where(Prompt.id == analysis.prompt_id))
-        prompt = res_p.scalar_one()
+        prompt = await self.prompt_repo.get(analysis.prompt_id)
 
         start = datetime.utcnow()
         try:
             apply_res = await self.pipeline.apply_patches(analysis_id=request.analysis_id, patch_ids=request.patch_ids)
         except Exception as e:
-            await self.events.log_event(
+            await self.event_repo.log(
                 EventType.ANALYZE_FAILED,
                 analysis_id=request.analysis_id,
                 prompt_id=analysis.prompt_id,
@@ -248,10 +251,10 @@ class AnalysisService:
 
         analysis.applied_patches = applied
         analysis.updated_at = datetime.utcnow()
-        await self.session.commit()
+        await self.analysis_repo.update(analysis)
 
         duration_ms = int((datetime.utcnow() - start).total_seconds() * 1000)
-        await self.events.log_event(
+        await self.event_repo.log(
             EventType.PATCHES_APPLIED,
             analysis_id=analysis.id,
             prompt_id=analysis.prompt_id,
@@ -272,12 +275,11 @@ class AnalysisService:
         )
 
     async def get_analysis(self, analysis_id: str) -> Result[AnalyzeResponse]:
-        res = await self.session.execute(select(AnalysisResult).where(AnalysisResult.id == analysis_id))
-        analysis = res.scalar_one_or_none()
+        analysis = await self.analysis_repo.get(analysis_id)
         if not analysis:
             return Result.fail(f"Analysis {analysis_id} not found", "NOT_FOUND")
 
-        prompt = await self.session.get(Prompt, analysis.prompt_id)
+        prompt = await self.prompt_repo.get(analysis.prompt_id)
         report = MetricReport(
             overall_score=analysis.overall_score,
             judge_score=JudgeScore(**analysis.judge_details),
@@ -306,13 +308,12 @@ class AnalysisService:
         )
 
     async def export(self, analysis_id: str) -> Result[Dict[str, Any]]:
-        res = await self.session.execute(select(AnalysisResult).where(AnalysisResult.id == analysis_id))
-        analysis = res.scalar_one_or_none()
+        analysis = await self.analysis_repo.get(analysis_id)
         if not analysis:
             return Result.fail(f"Analysis {analysis_id} not found", "NOT_FOUND")
 
-        prompt = await self.session.get(Prompt, analysis.prompt_id)
-        await self.events.log_event(
+        prompt = await self.prompt_repo.get(analysis.prompt_id)
+        await self.event_repo.log(
             EventType.EXPORT_REQUESTED,
             analysis_id=analysis.id,
             prompt_id=analysis.prompt_id,

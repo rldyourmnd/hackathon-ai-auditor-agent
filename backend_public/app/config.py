@@ -27,6 +27,8 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://curestry:secure_password@db:5432/curestry",
         alias="DATABASE_URL",
     )
+    # Optional Redis for caching/ratelimiting
+    redis_url: str | None = Field(default=None, alias="REDIS_URL")
 
     # OAuth
     google_client_id: str = Field(default="", alias="GOOGLE_CLIENT_ID")

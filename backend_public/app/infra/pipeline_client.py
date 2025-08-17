@@ -84,6 +84,59 @@ class PipelineClient:
 
         raise PipelineError(f"Unexpected error after retries: {last_exception}")
 
+    async def analyze_with_context(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Send enriched payload for analysis. Gracefully falls back to the simpler
+        analyze() call if the upstream does not accept the payload (e.g., 404/405)
+        or returns 4xx client validation errors that indicate unsupported fields.
+        """
+        last_exception: Exception | None = None
+        for attempt in range(3):
+            try:
+                logger.info("Pipeline analyze_with_context attempt %s/3", attempt + 1)
+                response = await self.client.post(f"{self.base_url}/analyze/", json=payload)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                last_exception = e
+                status_code = e.response.status_code
+                # Fallback on 404/405 or validation 400 that likely means unsupported shape
+                if status_code in (404, 405) or (status_code == 400 and "unsupported" in e.response.text.lower()):
+                    p = payload.get("prompt", {})
+                    return await self.analyze(
+                        prompt=p.get("content", ""),
+                        format_type=p.get("format_type", "auto"),
+                        language=p.get("language", "auto"),
+                    )
+                if 400 <= status_code < 500:
+                    raise PipelineHTTPError(
+                        f"Pipeline client error {status_code}: {e.response.text}", status_code
+                    )
+                if status_code >= 500 and attempt < 2:
+                    await asyncio.sleep(2**attempt)
+                    continue
+                raise PipelineHTTPError(
+                    f"Pipeline server error {status_code}: {e.response.text}", status_code
+                )
+            except httpx.TimeoutException as e:
+                last_exception = e
+                if attempt == 2:
+                    raise PipelineTimeoutError(
+                        f"Pipeline service timeout after 3 attempts. Analysis taking longer than {self.timeout.read}s."
+                    )
+                await asyncio.sleep(2**attempt)
+            except Exception as e:
+                last_exception = e
+                if attempt == 2:
+                    # Final fallback to simple analyze if possible
+                    p = payload.get("prompt", {})
+                    return await self.analyze(
+                        prompt=p.get("content", ""),
+                        format_type=p.get("format_type", "auto"),
+                        language=p.get("language", "auto"),
+                    )
+                await asyncio.sleep(2**attempt)
+
     async def clarify(self, analysis_id: str, answers: List[Dict]) -> Dict[str, Any]:
         payload = {"prompt_id": analysis_id, "answers": answers}
         for attempt in range(3):

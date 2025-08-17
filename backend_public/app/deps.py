@@ -13,6 +13,10 @@ async def get_current_user(authorization: str | None = Header(default=None), db:
     token = authorization[len(BearerPrefix):]
     payload = decode_jwt(token)
     user_id = payload.get("sub")
+    issuer = payload.get("iss")
+    # Enforce issuer when configured to prevent cross-env token usage
+    if settings.jwt_issuer and issuer != settings.jwt_issuer:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token issuer")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
     user = await db.get(models.User, user_id)

@@ -21,7 +21,7 @@ from .routers import workflow as workflow_router
 from .routers import auth as auth_router
 from fastapi import Depends
 from .deps import require_admin
-from .observability import metrics_router as observability_router
+from .observability import router as observability_router
 from .db import engine
 from sqlmodel import SQLModel
 

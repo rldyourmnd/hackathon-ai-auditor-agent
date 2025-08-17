@@ -1,8 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-from datetime import datetime
 
 from ..db import get_async_session
 from ..dto.requests import AnalyzeRequest, ClarifyRequest, ApplyRequest
@@ -18,8 +15,6 @@ from ..dto.responses import (
     ExportResponse,
 )
 from ..dto.common import RiskLevel
-from ..orm.models import Prompt, AnalysisResult, EventType
-from ..infra.event_logger import EventLogger
 from ..infra.pipeline_client import get_pipeline_client, PipelineClient
 from ..services.analysis_service import AnalysisService
 
@@ -45,8 +40,7 @@ def _placeholder_report() -> MetricReport:
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(req: AnalyzeRequest, session: AsyncSession = Depends(get_async_session)):
     pipeline: PipelineClient = await get_pipeline_client()
-    events = EventLogger(session)
-    service = AnalysisService(session=session, pipeline_client=pipeline, event_logger=events)
+    service = AnalysisService(session=session, pipeline_client=pipeline)
     result = await service.analyze_prompt(req)
     if not result.success:
         raise HTTPException(status_code=502, detail=result.error or "Analysis failed")
@@ -56,8 +50,7 @@ async def analyze(req: AnalyzeRequest, session: AsyncSession = Depends(get_async
 @router.post("/analyze/clarify", response_model=ClarifyResponse, summary="Clarify an analysis with user answers")
 async def analyze_clarify(req: ClarifyRequest, session: AsyncSession = Depends(get_async_session)):
     pipeline: PipelineClient = await get_pipeline_client()
-    events = EventLogger(session)
-    service = AnalysisService(session=session, pipeline_client=pipeline, event_logger=events)
+    service = AnalysisService(session=session, pipeline_client=pipeline)
     result = await service.clarify(req)
     if not result.success:
         if result.error_code == "NOT_FOUND":
@@ -69,8 +62,7 @@ async def analyze_clarify(req: ClarifyRequest, session: AsyncSession = Depends(g
 @router.post("/analyze/apply", response_model=ApplyResponse, summary="Apply patches to a prompt")
 async def analyze_apply(req: ApplyRequest, session: AsyncSession = Depends(get_async_session)):
     pipeline: PipelineClient = await get_pipeline_client()
-    events = EventLogger(session)
-    service = AnalysisService(session=session, pipeline_client=pipeline, event_logger=events)
+    service = AnalysisService(session=session, pipeline_client=pipeline)
     result = await service.apply(req)
     if not result.success:
         if result.error_code == "NOT_FOUND":
@@ -82,8 +74,7 @@ async def analyze_apply(req: ApplyRequest, session: AsyncSession = Depends(get_a
 @router.get("/analyses/{analysis_id}", response_model=AnalyzeResponse, summary="Get analysis by ID")
 async def get_analysis(analysis_id: str, session: AsyncSession = Depends(get_async_session)):
     pipeline: PipelineClient = await get_pipeline_client()
-    events = EventLogger(session)
-    service = AnalysisService(session=session, pipeline_client=pipeline, event_logger=events)
+    service = AnalysisService(session=session, pipeline_client=pipeline)
     result = await service.get_analysis(analysis_id)
     if not result.success:
         raise HTTPException(status_code=404, detail=result.error or "not found")
@@ -93,8 +84,7 @@ async def get_analysis(analysis_id: str, session: AsyncSession = Depends(get_asy
 @router.get("/export", response_model=ExportResponse, summary="Export full analysis payload")
 async def export_analysis(analysis_id: str, session: AsyncSession = Depends(get_async_session)):
     pipeline: PipelineClient = await get_pipeline_client()
-    events = EventLogger(session)
-    service = AnalysisService(session=session, pipeline_client=pipeline, event_logger=events)
+    service = AnalysisService(session=session, pipeline_client=pipeline)
     result = await service.export(analysis_id)
     if not result.success:
         raise HTTPException(status_code=404, detail=result.error or "not found")
