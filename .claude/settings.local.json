@@ -49,7 +49,9 @@
       "Bash(npx vsce:*)",
       "Bash(xcopy:*)",
       "Bash(robocopy:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git fetch:*)",
+      "Bash(git stash:*)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
