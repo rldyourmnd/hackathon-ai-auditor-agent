@@ -42,10 +42,15 @@ services:
       - APP_HOST=0.0.0.0
       - APP_PORT=8080
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
-      - DATABASE_URL=${PUBLIC_DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/auditor}
+      - DATABASE_URL=${PUBLIC_DATABASE_URL:-postgresql+psycopg2://curestry:secure_password@db:5432/curestry}
     depends_on:
       - api
       - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   web:
     build:

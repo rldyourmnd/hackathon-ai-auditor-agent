@@ -5,6 +5,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from .routers import spec_proxy as proxy_router
 from .routers import metrics as metrics_router
 from .routers import workflow as workflow_router
+from .routers import auth as auth_router
 from .db import Base, engine
 import logging
 
@@ -38,10 +39,21 @@ app.add_middleware(SessionMiddleware, secret_key=settings.app_secret)
 app.include_router(proxy_router.router)
 app.include_router(metrics_router.router)
 app.include_router(workflow_router.router)
+app.include_router(auth_router.router)
 
 @app.get("/")
 def root():
     return {"name": "auditor-public", "status": "ok"}
+
+@app.get("/healthz")
+def healthz():
+    # Quick DB connectivity check
+    try:
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+    except Exception as e:
+        return {"status": "degraded", "message": f"db error: {e}"}
+    return {"status": "healthy"}
 
 @app.on_event("startup")
 async def _on_startup():
