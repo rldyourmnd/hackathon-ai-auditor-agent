@@ -1,0 +1,54 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+    - name: Deploy to VPS
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          cd ${{ secrets.VPS_PROJECT_PATH }}
+
+          # Pull latest changes
+          git fetch --all
+          git reset --hard origin/main
+
+          # Stop existing containers
+          cd infra
+          docker compose down
+
+          # Rebuild and start containers
+          docker compose build --no-cache
+          docker compose up -d
+
+          # Clean up unused images
+          docker image prune -f
+
+          # Check if services are running
+          sleep 30
+          docker compose ps
+
+          # Test health endpoints
+          curl -f http://localhost:8000/healthz || echo "API health check failed"
+          curl -f http://localhost:3000 || echo "Frontend health check failed"
+        EOF
+
+    - name: Verify deployment
+      run: |
+        sleep 10
+        # Optional: Add external health checks here
+        echo "Deployment completed successfully"
