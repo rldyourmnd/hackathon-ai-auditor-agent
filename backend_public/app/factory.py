@@ -38,6 +38,11 @@ def create_app() -> FastAPI:
         docs_url="/pub-docs",
         redoc_url=None,
         openapi_url="/public-openapi.json",
+        openapi_tags=[
+            {"name": "health", "description": "Service health and readiness"},
+            {"name": "analysis", "description": "Analyze prompts, clarify, and apply patches"},
+            {"name": "admin", "description": "Admin analytics and API key management"},
+        ],
     )
 
     # Security middleware
