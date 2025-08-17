@@ -29,6 +29,24 @@ services:
       timeout: 10s
       retries: 3
 
+  backend_public:
+    build:
+      context: ..
+      dockerfile: ./infra/Dockerfile.backend_public
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - INTERNAL_API_BASE=${INTERNAL_API_BASE:-http://api:8000}
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8080
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - DATABASE_URL=${PUBLIC_DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/auditor}
+    depends_on:
+      - api
+      - db
+
   web:
     build:
       context: ../frontend
@@ -38,13 +56,13 @@ services:
     env_file:
       - .env
     environment:
-      - NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
+      - NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE:-http://localhost:8080}
     volumes:
       - ../frontend:/app
       - /app/node_modules
     command: npm run dev
     depends_on:
-      - api
+      - backend_public
 
   db:
     image: postgres:15-alpine

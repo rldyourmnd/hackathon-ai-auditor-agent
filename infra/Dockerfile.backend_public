@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+WORKDIR /app
+
+ENV POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_HOME=/opt/poetry \
+    PATH="/opt/poetry/bin:$PATH"
+
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev curl && rm -rf /var/lib/apt/lists/* \
+    && curl -sSL https://install.python-poetry.org | python3 -
+
+COPY ../backend_public/pyproject.toml /app/
+RUN poetry install --no-root --only main
+
+COPY ../backend_public/app /app/app
+
+EXPOSE 8080
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
