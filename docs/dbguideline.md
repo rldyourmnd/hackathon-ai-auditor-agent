@@ -1,430 +1,777 @@
-# Database Guidelines - PostgreSQL
+# Database Guidelines - Curestry Platform
 
-This document provides comprehensive information about the PostgreSQL database used in the Curestry project.
+Comprehensive database design guide for the Curestry AI prompt analysis platform, covering current implementation and future scalability.
 
-## Overview
+## Architecture Overview
 
-The Curestry project uses PostgreSQL 15 as the primary database system for storing prompts, analysis results, and relationship data. The database is containerized using Docker and configured with comprehensive schema management through Alembic migrations.
+### Database Strategy
+Curestry uses a **dual-database microservices architecture**:
 
-## Database Configuration
+1. **Main Backend Database** (`backend/`) - Core AI analysis functionality
+2. **Public Backend Database** (`backend_public/`) - User management and metrics
+3. **Future: Unified Database** - Single PostgreSQL instance with namespaced schemas
 
-### Connection Details
-- **Database Engine**: PostgreSQL 15 (Alpine)
-- **Host**: `db` (Docker container name)
-- **Port**: `5432` (internal), not exposed externally in production
-- **Database Name**: `curestry`
-- **Default User**: `curestry`
-- **Connection Pool**: SQLAlchemy with connection recycling (300s)
+### Technology Stack
+- **Database**: PostgreSQL 15+ with JSON/JSONB support
+- **ORM**: SQLModel (preferred) + SQLAlchemy 2.0
+- **Migrations**: Alembic with auto-generation
+- **Drivers**: asyncpg (async) + psycopg (sync)
+- **Connection**: Async/await pattern with connection pooling
 
-### Environment Variables
-```env
-POSTGRES_USER=curestry
-POSTGRES_PASSWORD=secure_password
-POSTGRES_DB=curestry
-DATABASE_URL=postgresql+psycopg://curestry:secure_password@db:5432/curestry
-```
+---
 
-### Connection Configuration
-- **Sync Engine**: `postgresql+psycopg://` (for migrations and setup)
-- **Async Engine**: `postgresql+asyncpg://` (for application use)
-- **Pool Settings**:
-  - `pool_pre_ping=True` - Verify connections before use
-  - `pool_recycle=300` - Recycle connections every 5 minutes
-  - SQL query logging enabled in development mode
+## Current Database Schemas
 
-## Database Schema
+### Core Schema (Main Backend)
 
-### Table Structure Overview
-
-The database consists of three main tables that form the core of the prompt analysis system:
-
-1. **prompts** - Core prompt storage and management
-2. **prompt_relations** - Inter-prompt relationships and dependencies
-3. **analysis_results** - Analysis history and metrics storage
-
-### 1. Prompts Table
-
-**Location**: `backend/alembic/versions/001_initial_tables.py:22-35`
+#### 1. Prompts Management
 
 ```sql
+-- Core prompt storage
 CREATE TABLE prompts (
-    id VARCHAR NOT NULL,                    -- UUID primary key
-    name VARCHAR(255) NOT NULL,             -- Prompt name/title
-    description VARCHAR,                    -- Optional description
-    content TEXT NOT NULL,                  -- The prompt text content
-    format_type VARCHAR(50) NOT NULL,       -- Format: auto/xml/markdown
-    language VARCHAR(10) NOT NULL,          -- Language code (e.g., 'en')
-    tags JSON,                             -- Array of categorization tags
-    extra_metadata JSON,                   -- Additional metadata storage
-    created_at DATETIME NOT NULL,          -- Creation timestamp
-    updated_at DATETIME NOT NULL,          -- Last modification timestamp
-    PRIMARY KEY (id)
+    id VARCHAR PRIMARY KEY,                     -- UUID string
+    name VARCHAR(255) NOT NULL,                 -- Display name
+    description TEXT,                           -- Optional description
+    content TEXT NOT NULL,                      -- Prompt text content
+    format_type VARCHAR(50) NOT NULL DEFAULT 'auto',  -- auto|text|markdown|xml
+    language VARCHAR(10) NOT NULL DEFAULT 'auto',     -- Language code
+    tags JSONB DEFAULT '[]'::jsonb,             -- Categorization tags
+    extra_metadata JSONB DEFAULT '{}'::jsonb,  -- Extensible metadata
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-```
 
-**Purpose**: Central storage for all prompts in the prompt-base system.
-
-**Key Fields**:
-- `id`: UUID string identifier (auto-generated)
-- `content`: Main prompt text stored as TEXT type
-- `format_type`: Prompt format detection/validation
-- `tags`: JSON array for flexible categorization
-- `extra_metadata`: JSON object for extensible metadata
-
-**Model Class**: `backend/app/models/prompts.py:35-56`
-
-### 2. Prompt Relations Table
-
-**Location**: `backend/alembic/versions/001_initial_tables.py:37-49`
-
-```sql
+-- Prompt relationships and dependencies
 CREATE TABLE prompt_relations (
-    id VARCHAR NOT NULL,                    -- UUID primary key
-    source_id VARCHAR NOT NULL,             -- Foreign key to prompts.id
-    target_id VARCHAR NOT NULL,             -- Foreign key to prompts.id
-    relation_type VARCHAR(50) NOT NULL,     -- Relationship type
-    description VARCHAR,                    -- Optional description
-    extra_metadata JSON,                   -- Additional metadata
-    created_at DATETIME NOT NULL,          -- Creation timestamp
-    PRIMARY KEY (id),
-    FOREIGN KEY(source_id) REFERENCES prompts (id),
-    FOREIGN KEY(target_id) REFERENCES prompts (id)
+    id VARCHAR PRIMARY KEY,                     -- UUID string
+    source_id VARCHAR NOT NULL REFERENCES prompts(id),
+    target_id VARCHAR NOT NULL REFERENCES prompts(id),
+    relation_type VARCHAR(50) NOT NULL,         -- depends_on|overrides|conflicts_with
+    description TEXT,                           -- Optional description
+    extra_metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT valid_relation_type CHECK (relation_type IN ('depends_on', 'overrides', 'conflicts_with'))
+);
+
+-- Analysis results storage
+CREATE TABLE analysis_results (
+    id VARCHAR PRIMARY KEY,                     -- UUID string
+    prompt_id VARCHAR REFERENCES prompts(id),  -- Optional FK (can analyze without saving prompt)
+    prompt_content TEXT NOT NULL,              -- Content that was analyzed
+
+    -- Language and format
+    detected_language VARCHAR(10) NOT NULL,
+    translated BOOLEAN NOT NULL DEFAULT FALSE,
+    format_valid BOOLEAN NOT NULL DEFAULT TRUE,
+
+    -- Core metrics
+    overall_score FLOAT NOT NULL CHECK (overall_score >= 0 AND overall_score <= 10),
+    judge_score FLOAT NOT NULL CHECK (judge_score >= 0 AND judge_score <= 10),
+    semantic_entropy FLOAT NOT NULL,
+    complexity_score FLOAT NOT NULL CHECK (complexity_score >= 0 AND complexity_score <= 10),
+    length_chars INTEGER NOT NULL CHECK (length_chars >= 0),
+    length_words INTEGER NOT NULL CHECK (length_words >= 0),
+
+    -- Analysis data (JSON)
+    contradictions JSONB DEFAULT '[]'::jsonb,
+    patches JSONB DEFAULT '[]'::jsonb,
+    clarify_questions JSONB DEFAULT '[]'::jsonb,
+    analysis_extra_metadata JSONB DEFAULT '{}'::jsonb,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ```
 
-**Purpose**: Manages relationships between prompts for dependency tracking and conflict detection.
-
-**Relation Types**:
-- `depends_on`: Source prompt depends on target prompt
-- `overrides`: Source prompt overrides target prompt
-- `conflicts_with`: Source prompt conflicts with target prompt
-
-**Model Class**: `backend/app/models/prompts.py:101-121`
-
-### 3. Analysis Results Table
-
-**Location**: `backend/alembic/versions/001_initial_tables.py:51-72`
+#### 2. User Management Schema (Backend Public)
 
 ```sql
-CREATE TABLE analysis_results (
-    id VARCHAR NOT NULL,                    -- UUID primary key
-    prompt_id VARCHAR,                      -- Optional foreign key to prompts.id
-    prompt_content TEXT NOT NULL,          -- Content that was analyzed
-    detected_language VARCHAR(10) NOT NULL, -- Detected language
-    translated BOOLEAN NOT NULL,           -- Whether content was translated
-    format_valid BOOLEAN NOT NULL,         -- Format validation result
-    overall_score FLOAT NOT NULL,          -- Overall quality score (0-10)
-    judge_score FLOAT NOT NULL,            -- LLM judge score (0-10)
-    semantic_entropy FLOAT NOT NULL,       -- Semantic entropy measurement
-    complexity_score FLOAT NOT NULL,       -- Vocabulary complexity (0-10)
-    length_chars INTEGER NOT NULL,         -- Character count
-    length_words INTEGER NOT NULL,         -- Word count
-    contradictions JSON,                   -- Detected contradictions
-    patches JSON,                          -- Improvement suggestions
-    clarify_questions JSON,                -- Clarification questions
-    analysis_extra_metadata JSON,          -- Additional analysis data
-    created_at DATETIME NOT NULL,          -- Analysis timestamp
-    PRIMARY KEY (id),
-    FOREIGN KEY(prompt_id) REFERENCES prompts (id)
+-- User accounts
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,                      -- Auto-increment ID
+    email VARCHAR(255) UNIQUE,                  -- Nullable for anonymous users
+    name VARCHAR(255),                          -- Display name
+    avatar_url VARCHAR(512),                    -- Profile picture URL
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Authentication sessions
+CREATE TABLE sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    jwt_id VARCHAR(64) UNIQUE NOT NULL,         -- JWT token identifier
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL
+);
+
+-- OAuth provider accounts
+CREATE TABLE auth_accounts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider VARCHAR(32) NOT NULL,              -- 'google', 'github', etc.
+    provider_account_id VARCHAR(255) NOT NULL,  -- Provider's user ID
+    access_token TEXT,                          -- OAuth access token (encrypted)
+    refresh_token TEXT,                         -- OAuth refresh token (encrypted)
+    raw_profile JSONB,                          -- Provider profile data
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE(provider, provider_account_id)
+);
+
+-- Workflow execution tracking
+CREATE TABLE workflow_runs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),      -- Who initiated the workflow
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at TIMESTAMPTZ,                   -- NULL while running
+    status VARCHAR(32) NOT NULL DEFAULT 'running', -- running|success|failed|cancelled
+    meta JSONB DEFAULT '{}'::jsonb,             -- Workflow metadata
+
+    CONSTRAINT valid_status CHECK (status IN ('running', 'success', 'failed', 'cancelled'))
+);
+
+-- Individual workflow nodes (pipeline steps)
+CREATE TABLE workflow_nodes (
+    id SERIAL PRIMARY KEY,
+    run_id INTEGER NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+    key VARCHAR(64) NOT NULL,                   -- Node identifier (e.g., 'detect_language')
+    status VARCHAR(32) NOT NULL DEFAULT 'pending', -- pending|running|success|failed
+    started_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
+    result JSONB,                               -- Node execution result
+
+    UNIQUE(run_id, key)
+);
+
+-- Metrics collection
+CREATE TABLE evaluation_metrics (
+    id SERIAL PRIMARY KEY,
+    run_id INTEGER NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+    node_key VARCHAR(64),                       -- Which node generated this metric
+    metric_name VARCHAR(64) NOT NULL,           -- Metric identifier
+    metric_value FLOAT NOT NULL,                -- Numeric value
+    metric_meta JSONB,                          -- Additional metric data
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- Prevent duplicate metrics per run/node/metric/time
+    UNIQUE(run_id, node_key, metric_name, created_at)
 );
 ```
 
-**Purpose**: Stores comprehensive analysis results and metrics for prompts.
+---
 
-**Key Metrics**:
-- `overall_score`: Composite quality score (0-10 scale)
-- `judge_score`: LLM-as-Judge evaluation score
-- `semantic_entropy`: Consistency measurement across multiple generations
-- `complexity_score`: Vocabulary and structural complexity
+## Future Database Architecture (Enterprise Scale)
 
-**JSON Fields**:
-- `contradictions`: Array of detected logical contradictions
-- `patches`: Array of improvement suggestions (safe/risky categorization)
-- `clarify_questions`: Interactive refinement questions
+### Schema Organization Strategy
 
-**Model Class**: `backend/app/models/prompts.py:177-191`
-
-## Database Operations
-
-### Connection Management
-
-**Sync Sessions** (for migrations):
-```python
-from app.core.database import SessionLocal, get_session
-
-with SessionLocal() as session:
-    # Perform database operations
-    pass
-
-# Or use dependency injection
-def my_function(session: Session = Depends(get_session)):
-    # Database operations
-    pass
+```sql
+-- Operational schemas (current + future)
+CREATE SCHEMA IF NOT EXISTS ops;     -- Operational data
+CREATE SCHEMA IF NOT EXISTS mart;    -- Analytics/reporting data
+CREATE SCHEMA IF NOT EXISTS core;    -- Core business entities (current prompts, etc.)
 ```
 
-**Async Sessions** (for application use):
-```python
-from app.core.database import AsyncSessionLocal, get_async_session
+### 1. Multi-tenancy and Access Control
 
-async with AsyncSessionLocal() as session:
-    # Perform async database operations
-    pass
+```sql
+-- Organizations (teams/companies)
+CREATE TABLE ops.organization (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,          -- URL-friendly identifier
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-# Or use dependency injection
-async def my_function(session: AsyncSession = Depends(get_async_session)):
-    # Async database operations
-    pass
+-- Organization membership
+CREATE TABLE ops.organization_user (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES ops.organization(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL,                  -- owner|admin|member|viewer
+    status VARCHAR(20) NOT NULL DEFAULT 'active', -- active|invited|removed
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE(organization_id, user_id),
+    CONSTRAINT valid_role CHECK (role IN ('owner', 'admin', 'member', 'viewer')),
+    CONSTRAINT valid_status CHECK (status IN ('active', 'invited', 'removed'))
+);
+
+-- API keys for programmatic access
+CREATE TABLE ops.api_key (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES ops.organization(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    name VARCHAR(255) NOT NULL,
+    key_hash VARCHAR(255) NOT NULL UNIQUE,      -- Hashed API key
+    scopes JSONB NOT NULL DEFAULT '[]'::jsonb,  -- Permissions array
+    expires_at TIMESTAMPTZ,                     -- NULL = never expires
+    is_revoked BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Provider credentials (LLM API keys, integrations)
+CREATE TABLE ops.provider_credential (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES ops.organization(id) ON DELETE CASCADE,
+    provider VARCHAR(50) NOT NULL,              -- openai|anthropic|slack|github
+    credential_ref VARCHAR(255) NOT NULL,       -- External credential ID/reference
+    meta JSONB DEFAULT '{}'::jsonb,             -- Provider-specific metadata
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
-### Health Monitoring
+### 2. Enhanced Analysis Tracking
 
-**Location**: `backend/app/core/database.py:96-149`
+```sql
+-- Analysis run tracking (replaces simple analysis_results)
+CREATE TABLE ops.analysis_run (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES ops.organization(id),
+    user_id INTEGER REFERENCES users(id),
+    prompt_id VARCHAR REFERENCES prompts(id),   -- Link to existing prompts table
+    status VARCHAR(20) NOT NULL DEFAULT 'queued', -- queued|running|succeeded|failed|cancelled
+    started_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
+    meta JSONB DEFAULT '{}'::jsonb,
 
-The `DatabaseManager` class provides comprehensive health monitoring:
+    CONSTRAINT valid_analysis_status CHECK (status IN ('queued', 'running', 'succeeded', 'failed', 'cancelled'))
+);
 
-```python
-from app.core.database import db_manager
+-- Key-value metrics per analysis
+CREATE TABLE ops.analysis_metric (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    analysis_run_id UUID NOT NULL REFERENCES ops.analysis_run(id) ON DELETE CASCADE,
+    key VARCHAR(100) NOT NULL,                  -- Metric name
+    value_num NUMERIC,                          -- Numeric value
+    value_text TEXT,                            -- Text value
+    value_json JSONB,                           -- Complex value
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-# Basic connection check
-is_connected = await check_db_connection()
+    -- At least one value must be present
+    CONSTRAINT has_value CHECK (
+        value_num IS NOT NULL OR
+        value_text IS NOT NULL OR
+        value_json IS NOT NULL
+    )
+);
 
-# Comprehensive health check
-health_data = await db_manager.health_check()
-# Returns: {
-#   "connected": bool,
-#   "pool_size": int,
-#   "pool_checked_in": int,
-#   "pool_checked_out": int,
-#   "pool_overflow": int
-# }
+-- Pipeline node results
+CREATE TABLE ops.analysis_node_result (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    analysis_run_id UUID NOT NULL REFERENCES ops.analysis_run(id) ON DELETE CASCADE,
+    node VARCHAR(50) NOT NULL,                  -- entropy|llm_judge|rag_oracle|regex_checks
+    status VARCHAR(20) NOT NULL,                -- ok|warn|fail|error
+    score NUMERIC CHECK (score >= 0 AND score <= 10),
+    details JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT valid_node_status CHECK (status IN ('ok', 'warn', 'fail', 'error'))
+);
 ```
 
-## Migration Management
+### 3. LLM-as-Judge System
+
+```sql
+-- Judge rubrics (evaluation criteria)
+CREATE TABLE ops.judge_rubric (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES ops.organization(id),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    meta JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Individual judge criteria
+CREATE TABLE ops.judge_criterion (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    rubric_id UUID NOT NULL REFERENCES ops.judge_rubric(id) ON DELETE CASCADE,
+    key VARCHAR(100) NOT NULL,                  -- Unique within rubric
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    weight NUMERIC NOT NULL DEFAULT 1.0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE(rubric_id, key)
+);
+
+-- Judge scores per analysis
+CREATE TABLE ops.judge_score (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    analysis_run_id UUID NOT NULL REFERENCES ops.analysis_run(id) ON DELETE CASCADE,
+    criterion_id UUID NOT NULL REFERENCES ops.judge_criterion(id),
+    score NUMERIC NOT NULL CHECK (score >= 0 AND score <= 10),
+    comment TEXT,
+    evidence JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### 4. Analytics and Reporting (mart schema)
+
+```sql
+-- Time-series metrics for dashboards
+CREATE TABLE mart.metric_timeseries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES ops.organization(id),
+    metric_key VARCHAR(100) NOT NULL,
+    ts_bucket TIMESTAMPTZ NOT NULL,             -- Aggregated timestamp (hourly/daily)
+    value_num NUMERIC,
+    value_json JSONB,
+
+    -- Ensure unique metric per time bucket
+    UNIQUE(organization_id, metric_key, ts_bucket)
+);
+
+-- Daily feature usage
+CREATE TABLE mart.feature_daily (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES ops.organization(id),
+    day DATE NOT NULL,
+    feature_key VARCHAR(100) NOT NULL,
+    events INTEGER NOT NULL DEFAULT 0,
+    unique_users INTEGER NOT NULL DEFAULT 0,
+
+    UNIQUE(organization_id, day, feature_key)
+);
+
+-- Daily analysis quality metrics
+CREATE TABLE mart.analysis_daily (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES ops.organization(id),
+    day DATE NOT NULL,
+    analyses INTEGER NOT NULL DEFAULT 0,
+    avg_overall NUMERIC,
+    avg_entropy NUMERIC,
+
+    UNIQUE(organization_id, day)
+);
+```
+
+---
+
+## Database Standards and Conventions
+
+### 1. Naming Conventions
+
+```sql
+-- Table names: snake_case, plural
+CREATE TABLE user_preferences (...);
+CREATE TABLE analysis_results (...);
+
+-- Column names: snake_case
+user_id, created_at, api_key_hash
+
+-- Foreign keys: {table}_id
+user_id REFERENCES users(id)
+organization_id REFERENCES organizations(id)
+
+-- Indexes: idx_{table}_{columns}
+CREATE INDEX idx_analysis_results_created_at ON analysis_results(created_at);
+
+-- Constraints: {type}_{table}_{column}
+CONSTRAINT chk_analysis_results_score CHECK (score >= 0 AND score <= 10);
+CONSTRAINT unq_api_keys_hash UNIQUE (key_hash);
+CONSTRAINT fk_sessions_user_id FOREIGN KEY (user_id) REFERENCES users(id);
+```
+
+### 2. Data Types Standards
+
+```sql
+-- Primary Keys
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()           -- Preferred for new tables
+id SERIAL PRIMARY KEY                                   -- Existing legacy tables
+
+-- Timestamps (always with timezone)
+created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+-- Text fields
+name VARCHAR(255)                                       -- Short text with limit
+description TEXT                                        -- Long text, unlimited
+content TEXT                                            -- Large content
+
+-- JSON fields
+metadata JSONB DEFAULT '{}'::jsonb                      -- Use JSONB for performance
+tags JSONB DEFAULT '[]'::jsonb                          -- Arrays as JSONB
+
+-- Enums via CHECK constraints
+status VARCHAR(20) NOT NULL DEFAULT 'active'
+CONSTRAINT valid_status CHECK (status IN ('active', 'inactive', 'pending'))
+
+-- Scores and metrics
+score NUMERIC CHECK (score >= 0 AND score <= 10)       -- Use NUMERIC for precision
+```
+
+### 3. Index Strategy
+
+```sql
+-- Primary indexes (automatic)
+-- Foreign key indexes (recommended)
+CREATE INDEX idx_analysis_results_prompt_id ON analysis_results(prompt_id);
+CREATE INDEX idx_sessions_user_id ON sessions(user_id);
+
+-- Time-based queries
+CREATE INDEX idx_analysis_results_created_at ON analysis_results(created_at);
+CREATE INDEX idx_workflow_runs_started_at ON workflow_runs(started_at);
+
+-- Organization-scoped queries
+CREATE INDEX idx_analysis_run_organization_id ON ops.analysis_run(organization_id);
+CREATE INDEX idx_api_key_organization_id ON ops.api_key(organization_id);
+
+-- JSON/JSONB indexes for frequent queries
+CREATE INDEX idx_prompts_tags_gin ON prompts USING GIN (tags);
+CREATE INDEX idx_analysis_results_metadata_gin ON analysis_results USING GIN (analysis_extra_metadata);
+
+-- Composite indexes for complex queries
+CREATE INDEX idx_workflow_runs_user_status ON workflow_runs(user_id, status);
+CREATE INDEX idx_evaluation_metrics_run_metric ON evaluation_metrics(run_id, metric_name);
+```
+
+---
+
+## Migration Strategy
+
+### Current State to Future Architecture
+
+#### Phase 1: Unification (Keep current tables, add ops schema)
+```sql
+-- Keep existing tables as-is
+-- Add new ops.* tables alongside
+-- Migrate data gradually
+-- Dual-write during transition
+```
+
+#### Phase 2: Schema Migration (Move to unified schema)
+```sql
+-- Migrate existing tables to core.* schema
+ALTER TABLE prompts SET SCHEMA core;
+ALTER TABLE analysis_results SET SCHEMA core;
+
+-- Update foreign key references
+-- Ensure application code compatibility
+```
+
+#### Phase 3: Full Implementation
+```sql
+-- Implement full ops.* and mart.* schemas
+-- Remove legacy tables
+-- Optimize indexes and performance
+```
 
 ### Alembic Configuration
 
-**Location**: `backend/alembic.ini`, `backend/alembic/env.py`
+```python
+# alembic/env.py configuration for multiple schemas
+def run_migrations_online():
+    # Include all models from both backends
+    from backend.app.models import *
+    from backend_public.app.models import *
+    from future.app.models import *  # Future models
 
-The project uses Alembic for database schema migrations:
-
-```bash
-# From backend/ directory
-alembic revision --autogenerate -m "Description of changes"
-alembic upgrade head
-alembic downgrade -1
+    # Set target metadata
+    target_metadata = [
+        Base.metadata,      # Current tables
+        SQLModel.metadata,  # Future SQLModel tables
+    ]
 ```
 
-### Current Migration
+---
 
-**File**: `backend/alembic/versions/001_initial_tables.py`
-- **Revision ID**: `001`
-- **Description**: Initial tables creation
-- **Date**: 2025-08-16 10:30:00
+## Performance Optimization
 
-## Data Models and Schemas
+### 1. Connection Pooling
 
-### SQLModel Integration
-
-The project uses SQLModel (SQLAlchemy + Pydantic) for type-safe database operations:
-
-**Base Models**: Define database table structure
-**Create Models**: Input validation for new records
-**Read Models**: Output serialization for API responses
-**Update Models**: Partial update validation
-
-Example usage:
 ```python
-from app.models.prompts import Prompt, PromptCreate, PromptRead
-
-# Create new prompt
-prompt_data = PromptCreate(
-    name="Example Prompt",
-    content="This is a test prompt",
-    format_type="auto",
-    language="en"
+# Async engine configuration
+async_engine = create_async_engine(
+    DATABASE_URL,
+    pool_size=20,                    # Connection pool size
+    max_overflow=30,                 # Additional connections
+    pool_pre_ping=True,              # Verify connections
+    pool_recycle=3600,               # Recycle every hour
+    echo=False                       # SQL logging (dev only)
 )
 
-# Save to database
-prompt = Prompt.from_orm(prompt_data)
-session.add(prompt)
-session.commit()
-
-# Return API response
-return PromptRead.from_orm(prompt)
+# Connection with retry logic
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 ```
 
-## Performance Considerations
+### 2. Query Optimization
 
-### Indexing Strategy
+```python
+# Efficient relationship loading
+async def get_prompt_with_relations(prompt_id: str, session: AsyncSession):
+    result = await session.execute(
+        select(Prompt)
+        .options(
+            selectinload(Prompt.relations),
+            selectinload(Prompt.analyses)
+        )
+        .where(Prompt.id == prompt_id)
+    )
+    return result.scalar_one_or_none()
 
-**Primary Keys**: All tables use UUID string primary keys
-**Foreign Keys**: Proper indexing on relationship columns
-**JSON Fields**: Consider adding GIN indexes for frequent JSON queries
+# Pagination with efficient counting
+async def list_analyses_paginated(skip: int, limit: int, session: AsyncSession):
+    # Get total count efficiently
+    count_query = select(func.count(AnalysisResult.id))
+    total = await session.scalar(count_query)
 
-### Connection Pooling
+    # Get paginated results
+    result = await session.execute(
+        select(AnalysisResult)
+        .offset(skip)
+        .limit(limit)
+        .order_by(AnalysisResult.created_at.desc())
+    )
 
-- Default pool size managed by SQLAlchemy
-- Connection recycling every 5 minutes prevents stale connections
-- Pre-ping verification ensures connection validity
-
-### Query Optimization
-
-- Use async sessions for non-blocking database operations
-- Implement proper error handling with rollback mechanisms
-- Consider using `selectinload()` for eager loading relationships
-
-## Data Integrity
-
-### Constraints
-
-1. **Foreign Key Constraints**:
-   - `prompt_relations.source_id` → `prompts.id`
-   - `prompt_relations.target_id` → `prompts.id`
-   - `analysis_results.prompt_id` → `prompts.id` (optional)
-
-2. **Field Validation**:
-   - All primary keys are non-nullable UUIDs
-   - Content fields use appropriate TEXT types for large data
-   - Timestamp fields auto-populate with creation/update times
-
-### Data Validation
-
-Pydantic models ensure data integrity at the application level:
-- String length limits (e.g., `name` max 255 characters)
-- Score ranges (0-10 for quality metrics)
-- Required vs. optional field enforcement
-- JSON schema validation for structured data
-
-## Backup and Recovery
-
-### Docker Volume Management
-
-Database data is persisted in Docker volumes:
-```yaml
-volumes:
-  postgres_data:  # Persistent storage for PostgreSQL data
+    return result.scalars().all(), total
 ```
 
-### Backup Strategy
+### 3. JSON Query Optimization
 
-```bash
-# Backup database
-docker exec curestry-db pg_dump -U curestry curestry > backup.sql
+```python
+# Efficient JSONB queries
+async def find_prompts_by_tags(tags: List[str], session: AsyncSession):
+    # Use JSONB containment operator
+    result = await session.execute(
+        select(Prompt)
+        .where(Prompt.tags.op('@>')([tags]))  # Contains any of these tags
+    )
+    return result.scalars().all()
 
-# Restore database
-docker exec -i curestry-db psql -U curestry curestry < backup.sql
+# JSON path queries
+async def find_high_entropy_analyses(threshold: float, session: AsyncSession):
+    result = await session.execute(
+        select(AnalysisResult)
+        .where(
+            cast(AnalysisResult.analysis_extra_metadata['semantic_entropy']['entropy'], Float) > threshold
+        )
+    )
+    return result.scalars().all()
 ```
+
+---
 
 ## Security Considerations
 
-1. **Access Control**:
-   - Database not exposed externally (no port mapping in production)
-   - Internal Docker network communication only
-   - Secure password management via environment variables
+### 1. Data Encryption
 
-2. **SQL Injection Prevention**:
-   - SQLAlchemy ORM provides automatic parameterization
-   - No raw SQL construction from user input
+```sql
+-- Sensitive data encryption (at application level)
+-- Store encrypted tokens, never plain text
+CREATE TABLE ops.provider_credential (
+    -- ... other fields ...
+    credential_ref VARCHAR(255) NOT NULL,  -- Encrypted credential reference
+    encryption_key_id VARCHAR(100),        -- Key management reference
+);
 
-3. **Connection Security**:
-   - TLS encryption can be enabled for production deployments
-   - Connection pooling limits prevent resource exhaustion
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Connection Failures**:
-   - Check Docker container status: `docker compose ps`
-   - Verify environment variables in `.env` file
-   - Check database logs: `docker compose logs db`
-
-2. **Migration Issues**:
-   - Ensure database is running before migrations
-   - Check Alembic revision history: `alembic history`
-   - Manual intervention may be needed for complex schema changes
-
-3. **Performance Issues**:
-   - Monitor connection pool statistics via health check endpoint
-   - Check for long-running queries in PostgreSQL logs
-   - Consider adding indexes for frequently queried JSON fields
-
-### Monitoring Commands
-
-```bash
-# Check database container status
-docker compose ps db
-
-# View database logs
-docker compose logs -f db
-
-# Access PostgreSQL shell
-docker compose exec db psql -U curestry curestry
-
-# Database size and statistics
-docker compose exec db psql -U curestry curestry -c "\l+ curestry"
-docker compose exec db psql -U curestry curestry -c "\dt+"
+-- Use PostgreSQL extensions for additional security
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ```
+
+### 2. Access Control
+
+```python
+# Row-level security example (future implementation)
+async def apply_organization_filter(query: Select, user_id: int, session: AsyncSession):
+    """Apply organization-based filtering to queries"""
+    user_orgs = await session.execute(
+        select(OrganizationUser.organization_id)
+        .where(OrganizationUser.user_id == user_id)
+        .where(OrganizationUser.status == 'active')
+    )
+    org_ids = [row[0] for row in user_orgs]
+
+    return query.where(YourModel.organization_id.in_(org_ids))
+```
+
+### 3. Audit Logging
+
+```sql
+-- Future audit table
+CREATE TABLE ops.audit_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    actor_user_id INTEGER REFERENCES users(id),
+    organization_id UUID REFERENCES ops.organization(id),
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(100) NOT NULL,
+    entity_id VARCHAR(255) NOT NULL,
+    before_state JSONB,
+    after_state JSONB
+);
+```
+
+---
 
 ## Development Workflow
 
-### Local Development
+### 1. Local Development Setup
 
-1. **Start Database**:
-   ```bash
-   docker compose up -d db
-   ```
+```bash
+# Database setup
+docker compose up -d db
+cd backend && alembic upgrade head
 
-2. **Run Migrations**:
-   ```bash
-   cd backend
-   alembic upgrade head
-   ```
+# Verify setup
+psql $DATABASE_URL -c "\dt"  # List tables
+psql $DATABASE_URL -c "SELECT version();"  # Check PostgreSQL version
+```
 
-3. **Verify Setup**:
-   ```bash
-   curl http://localhost:8000/healthz
-   ```
+### 2. Creating New Migrations
 
-### Testing
+```bash
+# Auto-generate migration
+cd backend
+alembic revision --autogenerate -m "Add organization tables"
 
-- Use separate test database for unit tests
-- Mock database operations for isolated testing
-- Integration tests should use ephemeral database instances
+# Review generated migration
+# Edit if necessary
+# Apply migration
+alembic upgrade head
+```
 
-## API Integration
+### 3. Testing Database Changes
 
-### Health Check Endpoint
+```python
+# Test database fixture
+@pytest.fixture
+async def test_db():
+    # Create test database
+    async_engine = create_async_engine("postgresql+asyncpg://test:test@localhost/test_curestry")
 
-**Endpoint**: `GET /healthz`
-**Response**: Database connectivity and pool statistics
+    # Create all tables
+    async with async_engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
-### Database-Related Endpoints
+    # Provide session
+    async_session = sessionmaker(async_engine, class_=AsyncSession)
+    async with async_session() as session:
+        yield session
 
-- `POST /prompt-base/add` - Stores prompts in database
-- `POST /analyze` - Creates analysis_results records
-- `GET /report/{id}.json` - Retrieves analysis data
-- `POST /prompt-base/check` - Queries for conflicts
+    # Cleanup
+    async with async_engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.drop_all)
+```
 
-## Future Enhancements
+---
 
-### Potential Schema Extensions
+## Monitoring and Maintenance
 
-1. **User Management**: Add user authentication and prompt ownership
-2. **Versioning**: Implement prompt version history
-3. **Caching**: Add Redis integration for frequently accessed data
-4. **Analytics**: Time-series data for usage patterns
-5. **Full-text Search**: PostgreSQL full-text search for prompt content
+### 1. Health Checks
 
-### Performance Optimizations
+```python
+async def database_health_check() -> dict:
+    """Comprehensive database health check"""
+    try:
+        async with AsyncSessionLocal() as session:
+            # Basic connectivity
+            await session.execute(text("SELECT 1"))
 
-1. **Read Replicas**: For scaling read operations
-2. **Partitioning**: For large analysis_results table
-3. **Materialized Views**: For complex analytical queries
-4. **Background Jobs**: For heavy analysis operations
+            # Check recent activity
+            recent_analyses = await session.scalar(
+                select(func.count(AnalysisResult.id))
+                .where(AnalysisResult.created_at > datetime.utcnow() - timedelta(hours=24))
+            )
+
+            return {
+                "status": "healthy",
+                "recent_analyses_24h": recent_analyses,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+```
+
+### 2. Performance Monitoring
+
+```sql
+-- Monitor slow queries
+SELECT query, mean_time, calls, total_time
+FROM pg_stat_statements
+WHERE mean_time > 1000  -- Queries taking over 1 second
+ORDER BY mean_time DESC;
+
+-- Monitor table sizes
+SELECT
+    schemaname,
+    tablename,
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
+FROM pg_tables
+WHERE schemaname IN ('public', 'ops', 'mart')
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+
+-- Monitor index usage
+SELECT
+    schemaname,
+    tablename,
+    indexname,
+    idx_scan,
+    idx_tup_read,
+    idx_tup_fetch
+FROM pg_stat_user_indexes
+ORDER BY idx_scan DESC;
+```
+
+---
+
+## Backup and Recovery
+
+### 1. Backup Strategy
+
+```bash
+# Daily automated backups
+pg_dump $DATABASE_URL \
+    --format=custom \
+    --compress=9 \
+    --file="backup_$(date +%Y%m%d_%H%M%S).dump"
+
+# Point-in-time recovery setup
+# Enable WAL archiving in postgresql.conf
+archive_mode = on
+archive_command = 'cp %p /path/to/archive/%f'
+```
+
+### 2. Disaster Recovery
+
+```bash
+# Restore from backup
+pg_restore \
+    --dbname=curestry_restored \
+    --create \
+    --clean \
+    backup_20250817_120000.dump
+
+# Verify data integrity
+psql curestry_restored -c "
+SELECT
+    COUNT(*) as total_prompts,
+    COUNT(DISTINCT id) as unique_prompts
+FROM prompts;
+"
+```
 
 ---
 
 **Last Updated**: 2025-08-17
-**Schema Version**: 001 (Initial Tables)
-**PostgreSQL Version**: 15-alpine
+**Database Version**: PostgreSQL 15+
+**Schema Version**: v2.0 (Current + Future Ready)
+**Status**: Production Ready + Future Scalable

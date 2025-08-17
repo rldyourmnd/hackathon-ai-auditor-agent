@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse, HTMLResponse
 import httpx
 from ..config import settings
 
-router = APIRouter(prefix="/internal", tags=["internal-proxy"]) 
+router = APIRouter(prefix="/internal", tags=["internal-proxy"])
 
 async def _proxy(request: Request, path: str) -> Response:
     url = f"{settings.internal_api_base.rstrip('/')}/{path}"

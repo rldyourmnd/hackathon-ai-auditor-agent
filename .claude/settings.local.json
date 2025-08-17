@@ -56,7 +56,10 @@
       "Bash(ssh-copy-id:*)",
       "Bash(ssh:*)",
       "Bash(git rm:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git pull:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(find:*)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
