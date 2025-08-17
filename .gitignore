@@ -87,3 +87,11 @@ coverage.xml
 # Alembic
 alembic/versions/*.py
 !alembic/versions/.gitkeep
+
+# Secrets and credentials - NEVER COMMIT
+vps-secrets.local.txt
+setup-vps.md
+*.secrets
+*.credentials
+ssh-keys/
+deployment-keys/

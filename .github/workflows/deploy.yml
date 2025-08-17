@@ -27,8 +27,10 @@ jobs:
           git fetch --all
           git reset --hard origin/main
 
-          # Stop existing containers
+          # Navigate to infra directory and manage containers
           cd infra
+
+          # Stop existing containers
           docker compose down
 
           # Rebuild and start containers
