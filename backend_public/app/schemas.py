@@ -3,7 +3,7 @@ from typing import Optional, Any, List
 from datetime import datetime
 
 class UserOut(BaseModel):
-    id: int
+    id: str
     email: Optional[str]
     name: Optional[str]
     avatar_url: Optional[str]
@@ -17,7 +17,7 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
 
 class MetricPoint(BaseModel):
-    run_id: int
+    run_id: str
     node_key: Optional[str] = None
     metric_name: str
     metric_value: float
@@ -33,12 +33,14 @@ class MetricAggregatePoint(BaseModel):
     value: float
 
 class CreateRunIn(BaseModel):
+    prompt_id: Optional[str] = None
     prompt: Optional[str] = None
     language: Optional[str] = None
     meta: Optional[dict] = None
 
 class RunOut(BaseModel):
-    id: int
+    id: str
+    prompt_id: Optional[str] = None
     status: str
     started_at: datetime
     finished_at: Optional[datetime]

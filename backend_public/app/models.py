@@ -1,88 +1,112 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, JSON, Float, UniqueConstraint, Text
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy import Column, JSON, UniqueConstraint, Text, CheckConstraint, Index
 from datetime import datetime
-from .db import Base
+from typing import Optional
+import uuid
+from sqlmodel import SQLModel, Field
 
-class User(Base):
+
+# ------------------------------------------------------------
+# Core domain models migrated to SQLModel with UUID string PKs
+# ------------------------------------------------------------
+
+class User(SQLModel, table=True):
     __tablename__ = "users"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    email: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
-    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    auth_accounts: Mapped[list[AuthAccount]] = relationship("AuthAccount", back_populates="user", cascade="all, delete-orphan")
-    sessions: Mapped[list[Session]] = relationship("Session", back_populates="user", cascade="all, delete-orphan")
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True)
+    email: Optional[str] = Field(default=None, description="unique email", index=True)
+    name: Optional[str] = Field(default=None)
+    avatar_url: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-class Session(Base):
+    __table_args__ = (
+        UniqueConstraint("email", name="uq_users_email"),
+    )
+
+
+class Session(SQLModel, table=True):
     __tablename__ = "sessions"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    jwt_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
-    user: Mapped[User] = relationship("User", back_populates="sessions")
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex, primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    jwt_id: str = Field(index=True, description="JWT JTI or derived id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime
 
-class AuthAccount(Base):
+    __table_args__ = (
+        UniqueConstraint("jwt_id", name="uq_sessions_jwt_id"),
+        Index("idx_sessions_user_id", "user_id"),
+    )
+
+
+class AuthAccount(SQLModel, table=True):
     __tablename__ = "auth_accounts"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    provider: Mapped[str] = mapped_column(String(32), index=True)  # e.g. google
-    provider_account_id: Mapped[str] = mapped_column(String(255), index=True)
-    access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
-    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
-    raw_profile: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    user: Mapped[User] = relationship("User", back_populates="auth_accounts")
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex, primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    provider: str = Field(description="e.g. google")
+    provider_account_id: str
+    access_token: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    refresh_token: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    raw_profile: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
     __table_args__ = (
         UniqueConstraint("provider", "provider_account_id", name="uq_provider_account"),
     )
 
-class Prompt(Base):
-    __tablename__ = "prompts"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    content: Mapped[str] = mapped_column(Text)
-    language: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-class WorkflowRun(Base):
+# Note: Prompts and analysis tables live in the main backend per dbguideline.
+
+
+class WorkflowRun(SQLModel, table=True):
     __tablename__ = "workflow_runs"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    prompt_id: Mapped[int | None] = mapped_column(ForeignKey("prompts.id"), nullable=True)
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    status: Mapped[str] = mapped_column(String(32), default="running")  # running|success|failed
-    meta: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
-class WorkflowNode(Base):
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex, primary_key=True)
+    user_id: Optional[str] = Field(default=None, foreign_key="users.id")
+    # Link to core prompts table (backend side) per dbguideline
+    prompt_id: Optional[str] = Field(default=None, foreign_key="prompts.id", index=True)
+    started_at: datetime = Field(default_factory=datetime.utcnow)
+    finished_at: Optional[datetime] = Field(default=None)
+    status: str = Field(default="running", description="running|success|failed|cancelled")
+    meta: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+
+    __table_args__ = (
+        CheckConstraint("status IN ('running','success','failed','cancelled')", name="chk_workflow_runs_status"),
+        Index("idx_workflow_runs_started_at", "started_at"),
+        Index("idx_workflow_runs_user_status", "user_id", "status"),
+    )
+
+
+class WorkflowNode(SQLModel, table=True):
     __tablename__ = "workflow_nodes"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    run_id: Mapped[int] = mapped_column(ForeignKey("workflow_runs.id"), index=True)
-    key: Mapped[str] = mapped_column(String(64))  # e.g., detect_language
-    status: Mapped[str] = mapped_column(String(32), default="pending")
-    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex, primary_key=True)
+    run_id: str = Field(foreign_key="workflow_runs.id", index=True)
+    key: str = Field(description="e.g., detect_language")
+    status: str = Field(default="pending")
+    started_at: Optional[datetime] = Field(default=None)
+    finished_at: Optional[datetime] = Field(default=None)
+    result: Optional[dict] = Field(default=None, sa_column=Column(JSON))
 
     __table_args__ = (
         UniqueConstraint("run_id", "key", name="uq_run_node"),
+        CheckConstraint("status IN ('pending','running','success','failed')", name="chk_workflow_nodes_status"),
     )
 
-class EvaluationMetric(Base):
+
+class EvaluationMetric(SQLModel, table=True):
     __tablename__ = "evaluation_metrics"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    run_id: Mapped[int] = mapped_column(ForeignKey("workflow_runs.id"), index=True)
-    node_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    metric_name: Mapped[str] = mapped_column(String(64), index=True)
-    metric_value: Mapped[float] = mapped_column(Float)
-    metric_meta: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex, primary_key=True)
+    run_id: str = Field(foreign_key="workflow_runs.id", index=True)
+    node_key: Optional[str] = Field(default=None)
+    metric_name: str = Field(description="metric name")
+    metric_value: float
+    metric_meta: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
     __table_args__ = (
         UniqueConstraint("run_id", "node_key", "metric_name", "created_at", name="uq_metric_point"),
+        Index("idx_evaluation_metrics_run_metric", "run_id", "metric_name"),
     )
+

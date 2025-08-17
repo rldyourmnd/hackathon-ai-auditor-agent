@@ -5,14 +5,24 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-# Add the app directory to the path
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+# Add the backend app directory and project root to sys.path
+backend_dir = os.path.dirname(os.path.dirname(__file__))
+project_root = os.path.dirname(backend_dir)
+sys.path.append(backend_dir)
+if project_root not in sys.path:
+    sys.path.append(project_root)
 
 # Import SQLModel and models
 from sqlmodel import SQLModel
 
 from app.core.config import settings
 from app.models.prompts import AnalysisResult, Prompt, PromptRelation
+# Import backend_public models so their tables are part of SQLModel.metadata
+try:
+    from backend_public.app import models as public_models  # noqa: F401
+except Exception:
+    # If backend_public isn't available in this environment, continue without it
+    public_models = None
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

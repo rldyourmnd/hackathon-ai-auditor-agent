@@ -29,6 +29,44 @@ services:
       timeout: 10s
       retries: 3
 
+  public:
+    build:
+      context: ../backend_public
+      dockerfile: ../infra/Dockerfile.backend_public
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+      - ../backend_public/.env
+    environment:
+      - ENV=${ENV:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DATABASE_URL=${DATABASE_URL}
+      - INTERNAL_API_BASE=${INTERNAL_API_BASE:-http://api:8000}
+      - APP_HOST=${APP_HOST:-0.0.0.0}
+      - APP_PORT=${APP_PORT:-8080}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - APP_SECRET=${APP_SECRET:-change_me_super_secret}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - ADMIN_EMAILS=${ADMIN_EMAILS}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_OAUTH_REDIRECT=${GOOGLE_OAUTH_REDIRECT:-http://localhost:8080/auth/google/callback}
+      - JWT_ISSUER=${JWT_ISSUER:-auditor.public}
+      - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES:-120}
+      - HTTP_TIMEOUT_SECONDS=${HTTP_TIMEOUT_SECONDS:-30}
+    depends_on:
+      - api
+      - db
+    volumes:
+      - ../backend_public:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   web:
     build:
       context: ../frontend

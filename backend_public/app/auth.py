@@ -6,12 +6,12 @@ import uuid
 
 ALGORITHM = "HS256"
 
-def create_jwt(user_id: int, email: str | None, jwt_id: str | None = None) -> tuple[str, datetime]:
+def create_jwt(user_id: str, email: str | None, jwt_id: str | None = None) -> tuple[str, datetime]:
     if not jwt_id:
         jwt_id = uuid.uuid4().hex
     expire = datetime.utcnow() + timedelta(minutes=settings.jwt_expire_minutes)
     payload = {
-        "sub": str(user_id),
+        "sub": user_id,
         "email": email,
         "jti": jwt_id,
         "iss": settings.jwt_issuer,

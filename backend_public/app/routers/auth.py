@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from authlib.integrations.starlette_client import OAuth
 from ..config import settings
-from ..db import get_db
+from ..db import get_async_session
 from .. import models
 from ..auth import create_jwt
 from ..schemas import TokenOut, UserOut
@@ -27,7 +28,7 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/google/callback", response_model=TokenOut)
-async def google_callback(request: Request, db: Session = Depends(get_db)):
+async def google_callback(request: Request, db: AsyncSession = Depends(get_async_session)):
     if not settings.google_client_id or not settings.google_client_secret:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
 
@@ -42,24 +43,31 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     sub = userinfo.get("sub")
 
     # upsert user
-    auth_account = db.query(models.AuthAccount).filter_by(provider="google", provider_account_id=sub).one_or_none()
+    result = await db.execute(
+        select(models.AuthAccount).where(
+            models.AuthAccount.provider == "google",
+            models.AuthAccount.provider_account_id == sub,
+        )
+    )
+    auth_account = result.scalar_one_or_none()
     if auth_account:
-        user = db.get(models.User, auth_account.user_id)
+        user = await db.get(models.User, auth_account.user_id)
     else:
-        user = db.query(models.User).filter_by(email=email).one_or_none()
+        result = await db.execute(select(models.User).where(models.User.email == email))
+        user = result.scalar_one_or_none()
         if not user:
             user = models.User(email=email, name=name, avatar_url=picture)
             db.add(user)
-            db.flush()
+            await db.flush()
         auth_account = models.AuthAccount(user_id=user.id, provider="google", provider_account_id=sub, raw_profile=userinfo)
         db.add(auth_account)
-    db.flush()
+    await db.flush()
 
     # issue jwt and session row
     access_token, exp = create_jwt(user.id, user.email)
     session = models.Session(user_id=user.id, jwt_id=access_token.split(".")[2][:32], created_at=datetime.utcnow(), expires_at=exp)
     db.add(session)
-    db.commit()
+    await db.commit()
 
     return TokenOut(access_token=access_token)
 
