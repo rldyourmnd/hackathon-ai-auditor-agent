@@ -1,10 +1,26 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "outDir": "dist",
     "module": "ES2020",
     "lib": ["DOM", "ES2020"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["chrome"],
+    "paths": {
+      "@extensions/client-sdk": ["../../packages/client-sdk/src"],
+      "@extensions/client-sdk/*": ["../../packages/client-sdk/src/*"],
+      "@extensions/shared": ["../../packages/shared/src"],
+      "@extensions/shared/*": ["../../packages/shared/src/*"],
+      "@extensions/messaging": ["../../packages/messaging/src"],
+      "@extensions/messaging/*": ["../../packages/messaging/src/*"],
+      "@extensions/ui": ["../../packages/ui/src"],
+      "@extensions/ui/*": ["../../packages/ui/src/*"],
+      "@extensions/adapters": ["../../packages/adapters/src"],
+      "@extensions/adapters/*": ["../../packages/adapters/src/*"],
+      "@extensions/core": ["../../packages/core/src"],
+      "@extensions/core/*": ["../../packages/core/src/*"]
+    }
   },
   "include": ["src"]
 }

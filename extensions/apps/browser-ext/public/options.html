@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>AI Auditor Options</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 16px; max-width: 560px; }
+      label { display: block; margin: 8px 0; }
+      input, select { padding: 6px; width: 100%; max-width: 420px; }
+      button { margin-top: 12px; padding: 8px 12px; }
+    </style>
+  </head>
+  <body>
+    <label>Mode:
+      <select id="mode">
+        <option value="mock">mock</option>
+        <option value="remote">remote</option>
+      </select>
+    </label>
+    <label>Base URL:
+      <input id="baseUrl" placeholder="https://api.example.com" />
+    </label>
+    <label>API key:
+      <input id="apiKey" />
+    </label>
+    <button id="save">Save</button>
+    <script type="module" src="../src/options.ts"></script>
+  </body>
+</html>
+
+
